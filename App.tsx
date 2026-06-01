@@ -6,7 +6,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AppNavigation from "./src/navigation/AppNavigation";
 import { useAuthStore } from "./src/store/auth-store";
 import { LoadingSpinner } from "./src/components/ui";
-import { connectSocket, disconnectSocket } from "./src/sockets/socket";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,15 +25,6 @@ function AppContent() {
   useEffect(() => {
     loadStoredAuth();
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      connectSocket();
-    } else {
-      disconnectSocket();
-    }
-    return () => disconnectSocket();
-  }, [isAuthenticated]);
 
   if (isLoading) return <LoadingSpinner text="Starting Jay Goga POS..." />;
 

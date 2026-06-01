@@ -46,6 +46,7 @@ export function useSections(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["sections", params],
     queryFn: () => sectionsApi.getAll(params).then((r) => r.data),
+    refetchInterval: 10000,
   });
 }
 
@@ -62,6 +63,7 @@ export function useTables(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["tables", params],
     queryFn: () => tablesApi.getAll(params).then((r) => r.data),
+    refetchInterval: 10000,
   });
 }
 
@@ -79,6 +81,7 @@ export function useCategories(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["categories", params],
     queryFn: () => categoriesApi.getAll(params).then((r) => r.data),
+    refetchInterval: 10000,
   });
 }
 
@@ -95,6 +98,7 @@ export function useProducts(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["products", params],
     queryFn: () => productsApi.getAll(params).then((r) => r.data),
+    refetchInterval: 10000,
   });
 }
 
@@ -191,7 +195,7 @@ export function useKitchenDashboard(sectionId?: string) {
   return useQuery({
     queryKey: ["kitchen", sectionId],
     queryFn: () => kitchenApi.getDashboard(sectionId).then((r) => r.data),
-    refetchInterval: 5000, // Realtime-like refresh
+    refetchInterval: 10000,
   });
 }
 
@@ -199,7 +203,7 @@ export function useKitchenSummary(sectionId?: string) {
   return useQuery({
     queryKey: ["kitchen-summary", sectionId],
     queryFn: () => kitchenApi.getSummary(sectionId).then((r) => r.data),
-    refetchInterval: 5000,
+    refetchInterval: 10000,
   });
 }
 
@@ -208,6 +212,7 @@ export function useInventory(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["inventory", params],
     queryFn: () => inventoryApi.getAll(params).then((r) => r.data),
+    refetchInterval: 10000,
   });
 }
 
