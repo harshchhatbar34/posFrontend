@@ -2,26 +2,73 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, StatusBadge, Button, LoadingSpinner } from "../components/ui";
-import { useKitchenDashboard, useKitchenSummary, useUpdateItemStatus } from "../hooks/useApi";
+import { useOrders, useUpdateOrderStatus, useUpdateItemStatus, useRemoveOrderItem } from "../hooks/useApi";
 import { Order, OrderItem } from "../types";
+// removed useIsFocused import as it's no longer needed
+import { useAuthStore } from "../store/auth-store";
+import { toast } from "../utils/toast";
 
-export default function KitchenScreen() {
-  const { data, isLoading, refetch } = useKitchenDashboard();
-  const { data: summaryData } = useKitchenSummary();
+export default function KitchenScreen({ navigation }: any) {
+
+  const role = useAuthStore((s) => s.user?.role);
+  const allowed = ["SUPER_ADMIN", "ADMIN", "CHEF"].includes(role);
+
+  const { data, isLoading, error, refetch } = useOrders(undefined, { enabled: true });
+  const updateStatus = useUpdateOrderStatus();
   const updateItem = useUpdateItemStatus();
+  const removeItem = useRemoveOrderItem();
   const [refreshing, setRefreshing] = useState(false);
+  const orders = React.useMemo(() => data?.data ?? [], [data?.data]);
+  // Exclude cancelled orders from the list
+  const visibleOrders = React.useMemo(() => orders.filter((o) => o.status !== "CANCELLED"), [orders]);
+  // Sort orders by creation time (ascending) so the earliest order appears first
+  const sortedOrders = React.useMemo(() => {
+    return [...visibleOrders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [visibleOrders]);
   const [now, setNow] = useState(Date.now());
 
-  // Timer update every second
+  // Update clock every second but only when the second value changes to avoid unnecessary renders
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => {
+      const newNow = Date.now();
+      if (Math.floor(newNow / 1000) !== Math.floor(now / 1000)) {
+        setNow(newNow);
+      }
+    }, 250);
     return () => clearInterval(timer);
-  }, []);
+  }, [now]);
+
+  if (!allowed) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: COLORS.text, textAlign: "center", marginTop: 20 }}>
+          Access denied. Kitchen view is for admin, super admin and chef only.
+        </Text>
+      </View>
+    );
+  }
 
   if (isLoading) return <LoadingSpinner />;
+  // Show toast only when an error occurs (side‑effect)
+  // Show toast only once per error occurrence
+  const hasShownError = React.useRef(false);
+  React.useEffect(() => {
+    if (error && !hasShownError.current) {
+      toast.show({ type: "error", text1: "Failed to load orders", text2: error?.message ?? "Error" });
+      hasShownError.current = true;
+    }
+    if (!error) {
+      hasShownError.current = false; // reset when error clears
+    }
+  }, [error]);
 
-  const orders = data?.data || [];
-  const summary = summaryData?.data || [];
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: COLORS.text, textAlign: "center", marginTop: 20 }}>Unable to load orders.</Text>
+      </View>
+    );
+  }
 
   const getElapsed = (createdAt: string) => {
     const diff = Math.floor((now - new Date(createdAt).getTime()) / 1000);
@@ -38,24 +85,8 @@ export default function KitchenScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Stats */}
-
-
-      {/* Summary */}
-      {summary.length > 0 && (
-        <View style={styles.summaryRow}>
-          {summary.slice(0, 5).map((s: any, i: number) => (
-            <View key={i} style={styles.summaryChip}>
-              <Text style={styles.summaryName}>{s.productName}</Text>
-              <Text style={styles.summaryQty}>×{s.totalQuantity}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Orders */}
       <FlatList
-        data={orders}
+        data={sortedOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: SPACING.md }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await refetch(); setRefreshing(false); }} tintColor={COLORS.primary} />}
@@ -82,13 +113,15 @@ export default function KitchenScreen() {
                     style={styles.actionBtn}
                     onPress={() => updateItem.mutate({ itemId: item.id, status: getNextStatus(item.status)! })}
                   >
-                    <Text style={styles.actionText}>
-                      {item.status === "PENDING" ? "Start" : "Done"}
-                    </Text>
+                    <Text style={styles.actionText}>{item.status === "PENDING" ? "Start" : "Done"}</Text>
                   </TouchableOpacity>
                 )}
+                {/* Remove item button disabled on Kitchen page */}
               </View>
             ))}
+            <View style={styles.actionsRow}>
+                {/* Cancel button removed from kitchen view */}
+            </View>
           </Card>
         )}
       />
@@ -98,14 +131,6 @@ export default function KitchenScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  statsRow: { flexDirection: "row", padding: SPACING.md, gap: SPACING.sm },
-  stat: { flex: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: "center" },
-  statNum: { fontSize: 22, fontWeight: "800" },
-  statLbl: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "600" },
-  summaryRow: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: SPACING.md, gap: 6, marginBottom: SPACING.sm },
-  summaryChip: { flexDirection: "row", backgroundColor: COLORS.surface, borderRadius: BORDER_RADIUS.full, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: COLORS.border },
-  summaryName: { fontSize: 12, color: COLORS.text, fontWeight: "600" },
-  summaryQty: { fontSize: 12, color: COLORS.primary, fontWeight: "800", marginLeft: 4 },
   orderCard: { marginBottom: SPACING.md },
   orderHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.sm },
   orderTable: { fontSize: 16, fontWeight: "700", color: COLORS.text },
@@ -115,4 +140,5 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 14, color: COLORS.text, fontWeight: "500" },
   actionBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: BORDER_RADIUS.sm },
   actionText: { color: COLORS.white, fontSize: 12, fontWeight: "700" },
+  actionsRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: SPACING.sm },
 });

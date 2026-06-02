@@ -15,18 +15,20 @@ import {
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, Badge, LoadingSpinner, Button, Input } from "../components/ui";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "../hooks/useApi";
+import { toast } from "../utils/toast";
 import { useAuthStore } from "../store/auth-store";
 import { User, Role } from "../types";
 
 export default function UsersScreen() {
   const currentUser = useAuthStore((s) => s.user);
   const { data, isLoading, refetch } = useUsers();
-  const users = data?.data?.users || [];
+  const users = Array.isArray(data?.data) ? data.data : [];
   
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("HELPER");
 
   const createUserMutation = useCreateUser();
@@ -41,6 +43,7 @@ export default function UsersScreen() {
     if (modalVisible) {
       setName("");
       setEmail("");
+      setPassword("");
       setRole(defaultRegisterRole);
     }
   }, [modalVisible, defaultRegisterRole]);
@@ -55,7 +58,7 @@ export default function UsersScreen() {
   };
 
   const handleCreateUser = () => {
-    if (!name.trim() || !email.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim()) {
       Alert.alert("Validation Error", "Please fill in all fields.");
       return;
     }
@@ -64,6 +67,7 @@ export default function UsersScreen() {
       {
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        password: password.trim(),
         role: isSuperAdmin ? "ADMIN" : role,
       },
       {
@@ -80,57 +84,57 @@ export default function UsersScreen() {
 
   const handleToggleBlock = (user: User, shouldBlock: boolean) => {
     const actionLabel = shouldBlock ? "block" : "unlock";
-    Alert.alert(
-      "Confirm Action",
-      `Are you sure you want to ${actionLabel} ${user.name}'s account?`,
-      [
-        { text: "Cancel", style: "cancel" },
+    const message = `Are you sure you want to ${actionLabel} ${user.name}'s account?`;
+
+    const doAction = () => {
+      updateUserMutation.mutate(
+        { id: user.id, data: { action: shouldBlock ? "block" : "unlock" } },
         {
-          text: shouldBlock ? "Block" : "Unlock",
-          style: shouldBlock ? "destructive" : "default",
-          onPress: () => {
-            updateUserMutation.mutate(
-              {
-                id: user.id,
-                data: { action: shouldBlock ? "block" : "unlock" },
-              },
-              {
-                onSuccess: () => {
-                  refetch();
-                },
-                onError: (err: any) => {
-                  Alert.alert("Error", err?.response?.data?.error || `Failed to ${actionLabel} user.`);
-                },
-              }
-            );
+          onSuccess: () => {
+            toast.success(`User ${actionLabel}ed successfully!`);
+            refetch();
           },
-        },
-      ]
-    );
+          onError: (err: any) => {
+            toast.error(err?.response?.data?.error || `Failed to ${actionLabel} user.`);
+          },
+        }
+      );
+    };
+
+    if (Platform.OS === "web") {
+      // Alert.alert callbacks don't fire on web — use window.confirm instead
+      if (window.confirm(message)) doAction();
+    } else {
+      Alert.alert("Confirm Action", message, [
+        { text: "Cancel", style: "cancel" },
+        { text: shouldBlock ? "Block" : "Unlock", style: shouldBlock ? "destructive" : "default", onPress: doAction },
+      ]);
+    }
   };
 
   const handleDeleteUser = (user: User) => {
-    Alert.alert(
-      "Delete User",
-      `Are you sure you want to delete ${user.name}? This action is irreversible.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            deleteUserMutation.mutate(user.id, {
-              onSuccess: () => {
-                refetch();
-              },
-              onError: (err: any) => {
-                Alert.alert("Error", err?.response?.data?.error || "Failed to delete user.");
-              },
-            });
-          },
+    const message = `Are you sure you want to delete ${user.name}? This action is irreversible.`;
+
+    const doDelete = () => {
+      deleteUserMutation.mutate(user.id, {
+        onSuccess: () => {
+          toast.success("User deleted successfully!");
+          refetch();
         },
-      ]
-    );
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.error || "Failed to delete user.");
+        },
+      });
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) doDelete();
+    } else {
+      Alert.alert("Delete User", message, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: doDelete },
+      ]);
+    }
   };
 
   return (
@@ -245,116 +249,130 @@ export default function UsersScreen() {
         }}
       />
 
-      {/* Floating Add User Action Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonText}>➕ Add Member</Text>
-      </TouchableOpacity>
-
-      {/* Custom Onboarding Modal Sheet */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalContent}
+      {(isSuperAdmin || currentUser?.role === "ADMIN") && (
+        <>
+          {/* Floating Add User Action Button */}
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <ScrollView contentContainerStyle={styles.modalScroll}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>🎉 Add New Team Member</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={styles.closeBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+            <Text style={styles.floatingButtonText}>➕ Add Member</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
-              <View style={styles.modalForm}>
-                <Input
-                  label="Full Name"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter full name"
-                />
-
-                <Input
-                  label="Email Address"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Enter email address"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-
-                {/* Role Selector Box */}
-                <View style={styles.roleSelectorContainer}>
-                  <Text style={styles.roleSelectorLabel}>Assigned Role</Text>
-                  {isSuperAdmin ? (
-                    <View style={styles.staticRoleBadge}>
-                      <Text style={styles.staticRoleText}>ADMIN (Super Admin Pre-set)</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.roleToggles}>
-                      <TouchableOpacity
-                        style={[
-                          styles.roleToggleBtn,
-                          role === "HELPER" && styles.roleToggleBtnActive,
-                        ]}
-                        onPress={() => setRole("HELPER")}
-                      >
-                        <Text
-                          style={[
-                            styles.roleToggleText,
-                            role === "HELPER" && styles.roleToggleTextActive,
-                          ]}
-                        >
-                          Helper
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.roleToggleBtn,
-                          role === "CHEF" && styles.roleToggleBtnActive,
-                        ]}
-                        onPress={() => setRole("CHEF")}
-                      >
-                        <Text
-                          style={[
-                            styles.roleToggleText,
-                            role === "CHEF" && styles.roleToggleTextActive,
-                          ]}
-                        >
-                          Chef
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+      {(isSuperAdmin || currentUser?.role === "ADMIN") && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.modalContent}
+            >
+              <ScrollView contentContainerStyle={styles.modalScroll}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>🎉 Add New Team Member</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <Text style={styles.closeBtnText}>✕</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* Action Submit */}
-                <Button
-                  title="Send Invite & Register"
-                  onPress={handleCreateUser}
-                  loading={createUserMutation.isPending}
-                  fullWidth
-                  size="lg"
-                  style={{ marginTop: SPACING.lg }}
-                />
+                <View style={styles.modalForm}>
+                  <Input
+                    label="Full Name"
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Enter full name"
+                  />
 
-                <Text style={styles.onboardingDisclaimer}>
-                  An email setup code will be generated and dispatched automatically via SendGrid to allow the member to configure their initial secure login password.
-                </Text>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+                  <Input
+                    label="Email Address"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter email address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+
+                  <Input
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter password"
+                    secureTextEntry
+                    autoCapitalize="none"
+                  />
+
+                  {/* Role Selector Box */}
+                  <View style={styles.roleSelectorContainer}>
+                    <Text style={styles.roleSelectorLabel}>Assigned Role</Text>
+                    {isSuperAdmin ? (
+                      <View style={styles.staticRoleBadge}>
+                        <Text style={styles.staticRoleText}>ADMIN (Super Admin Pre-set)</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.roleToggles}>
+                        <TouchableOpacity
+                          style={[
+                            styles.roleToggleBtn,
+                            role === "HELPER" && styles.roleToggleBtnActive,
+                          ]}
+                          onPress={() => setRole("HELPER")}
+                        >
+                          <Text
+                            style={[
+                              styles.roleToggleText,
+                              role === "HELPER" && styles.roleToggleTextActive,
+                            ]}
+                          >
+                            Helper
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.roleToggleBtn,
+                            role === "CHEF" && styles.roleToggleBtnActive,
+                          ]}
+                          onPress={() => setRole("CHEF")}
+                        >
+                          <Text
+                            style={[
+                              styles.roleToggleText,
+                              role === "CHEF" && styles.roleToggleTextActive,
+                            ]}
+                          >
+                            Chef
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Action Submit */}
+                  <Button
+                    title="Send Invite & Register"
+                    onPress={handleCreateUser}
+                    loading={createUserMutation.isPending}
+                    fullWidth
+                    size="lg"
+                    style={{ marginTop: SPACING.lg }}
+                  />
+
+                  <Text style={styles.onboardingDisclaimer}>
+                    Ensure the password meets security requirements. The new member will be able to log in immediately using these credentials.
+                  </Text>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }

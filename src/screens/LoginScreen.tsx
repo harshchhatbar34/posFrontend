@@ -240,19 +240,6 @@ export default function LoginScreen() {
             </View>
           </View>
         )}
-
-        {/* Demo Credentials */}
-        {mode === "login" && (
-          <View style={styles.demoCard}>
-            <Text style={styles.demoTitle}>Demo Credentials</Text>
-            <Text style={styles.demoText}>
-              Admin: admin@jaygoga.com{"\n"}
-              Chef: chef@jaygoga.com{"\n"}
-              Helper: helper@jaygoga.com{"\n"}
-              Password: password123
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

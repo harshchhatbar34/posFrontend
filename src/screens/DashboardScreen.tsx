@@ -5,16 +5,18 @@ import { Card, StatusBadge, LoadingSpinner } from "../components/ui";
 import { useAuthStore } from "../store/auth-store";
 import { useOrders, useKitchenDashboard } from "../hooks/useApi";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 
 export default function DashboardScreen({ navigation }: any) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasRole = useAuthStore((s) => s.hasRole);
+  const isFocused = useIsFocused();
 
-  const { data: ordersData, isLoading, refetch } = useOrders();
-  const { data: kitchenData } = useKitchenDashboard();
+  const { data: ordersData, isLoading, refetch } = useOrders(undefined, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
+  const { data: kitchenData } = useKitchenDashboard(undefined, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
 
-  const orders = ordersData?.data?.orders || [];
+  const orders = Array.isArray(ordersData?.data) ? ordersData.data : [];
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = async () => {
@@ -27,7 +29,7 @@ export default function DashboardScreen({ navigation }: any) {
     {
       title: "Sections",
       icon: "grid-outline" as const,
-      color: "#6366F1",
+      color: COLORS.primary,
       screen: "Sections",
       roles: ["SUPER_ADMIN", "ADMIN", "HELPER"],
     },
@@ -71,7 +73,7 @@ export default function DashboardScreen({ navigation }: any) {
       icon: "people-outline" as const,
       color: "#EC4899",
       screen: "Users",
-      roles: ["SUPER_ADMIN"],
+      roles: ["SUPER_ADMIN", "ADMIN"],
     },
   ];
 
@@ -120,28 +122,40 @@ export default function DashboardScreen({ navigation }: any) {
 
       {/* Recent Orders */}
       <Text style={styles.sectionTitle}>Recent Orders</Text>
-      {orders.slice(0, 5).map((order: any) => (
-        <Card
-          key={order.id}
-          style={styles.orderCard}
-          onPress={() => navigation.navigate("OrderDetail", { orderId: order.id })}
-        >
-          <View style={styles.orderHeader}>
-            <View>
-              <Text style={styles.orderTable}>
-                Table #{order.table?.tableNumber} • {order.table?.section?.name}
-              </Text>
-              <Text style={styles.orderTime}>
-                {new Date(order.createdAt).toLocaleTimeString()}
-              </Text>
+      {orders.slice(0, 5).map((order: any) => {
+        const productNames = order.items?.map((i: any) => i.product?.name).filter(Boolean) || [];
+        const itemSummary = productNames.length > 2 
+          ? `${productNames.slice(0, 2).join(", ")} + ${productNames.length - 2} more`
+          : productNames.join(", ");
+
+        return (
+          <Card
+            key={order.id}
+            style={styles.orderCard}
+            onPress={() => navigation.navigate("OrderDetail", { orderId: order.id })}
+          >
+            <View style={styles.orderHeader}>
+              <View style={{ flex: 1, paddingRight: SPACING.md }}>
+                <Text style={styles.orderTable}>
+                  Table #{order.table?.tableNumber} • {order.table?.section?.name}
+                </Text>
+                {itemSummary ? (
+                  <Text style={{ fontSize: 13, color: COLORS.text, marginTop: 4, fontWeight: "500" }} numberOfLines={1}>
+                    {itemSummary}
+                  </Text>
+                ) : null}
+                <Text style={styles.orderTime}>
+                  {new Date(order.createdAt).toLocaleTimeString()}
+                </Text>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <StatusBadge status={order.status} />
+                <Text style={styles.orderAmount}>₹{order.totalAmount}</Text>
+              </View>
             </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <StatusBadge status={order.status} />
-              <Text style={styles.orderAmount}>₹{order.totalAmount}</Text>
-            </View>
-          </View>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
 
       <View style={{ height: 40 }} />
     </ScrollView>

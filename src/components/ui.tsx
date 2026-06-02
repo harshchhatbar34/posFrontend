@@ -123,11 +123,16 @@ export function Card({ children, style, onPress }: CardProps) {
       activeOpacity={0.8}
       style={[
         {
-          backgroundColor: COLORS.surface,
+          backgroundColor: COLORS.card,
           borderRadius: BORDER_RADIUS.lg,
           padding: SPACING.md,
           borderWidth: 1,
           borderColor: COLORS.border,
+          shadowColor: COLORS.black,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          elevation: 2,
         },
         style,
       ]}

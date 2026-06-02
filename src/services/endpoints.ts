@@ -45,8 +45,8 @@ export const usersApi = {
   create: (data: Partial<User> & { password: string }) =>
     api.post<ApiResponse<User>>("/users", data),
 
-  update: (id: string, data: Partial<User>) =>
-    api.put<ApiResponse<User>>(`/users/${id}`, data),
+  update: (id: string, data: Partial<User> | { action: string }) =>
+    api.patch<ApiResponse<User>>(`/users/${id}`, data),
 
   delete: (id: string) => api.delete(`/users/${id}`),
 };
@@ -131,15 +131,22 @@ export const ordersApi = {
   }) => api.post<ApiResponse<Order>>("/orders", data),
 
   updateStatus: (id: string, status: string) =>
-    api.put<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
+    api.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
 
   recordPayment: (id: string, paymentMethod: string) =>
     api.post<ApiResponse<Order>>(`/orders/${id}/payment`, { paymentMethod }),
 
   updateItemStatus: (itemId: string, status: string) =>
-    api.patch<ApiResponse<OrderItem>>(`/order-items/${itemId}/status`, {
-      status,
-    }),
+    api.patch<ApiResponse<OrderItem>>(`/order-items/${itemId}/status`, { status }),
+
+  addItems: (id: string, items: Array<{ productId: string; quantity: number }>) =>
+    api.post<ApiResponse<Order>>(`/orders/${id}/items`, { items }),
+
+  removeItem: (orderId: string, itemId: string) =>
+    api.delete(`/orders/${orderId}/items/${itemId}`),
+
+  deleteOrder: (id: string) =>
+    api.delete(`/orders/${id}`),
 };
 
 // ============ Kitchen API ============

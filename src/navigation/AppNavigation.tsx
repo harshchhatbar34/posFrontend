@@ -1,8 +1,10 @@
 import React from "react";
+import { View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { COLORS } from "../constants";
 import { useAuthStore } from "../store/auth-store";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 // Screens
 import LoginScreen from "../screens/LoginScreen";
@@ -17,6 +19,7 @@ import InventoryScreen from "../screens/InventoryScreen";
 import ReportsScreen from "../screens/ReportsScreen";
 import UsersScreen from "../screens/UsersScreen";
 import ProductsScreen from "../screens/ProductsScreen";
+import OrderDetailScreen from "../screens/OrderDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -50,16 +53,77 @@ function AppStack() {
       <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: "Reports" }} />
       <Stack.Screen name="Users" component={UsersScreen} options={{ title: "Users" }} />
       <Stack.Screen name="Products" component={ProductsScreen} options={{ title: "Products" }} />
+      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: "Order Detail" }} />
     </Stack.Navigator>
   );
 }
+
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: "#22c55e",
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
+        minHeight: 48,
+        width: "auto",
+        maxWidth: 320,
+        alignSelf: "flex-start",
+        marginLeft: 16,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 12 }}
+      text1Style={{ fontSize: 13, fontWeight: "400", color: COLORS.text }}
+      text2Style={{ fontSize: 12, fontWeight: "400", color: COLORS.textSecondary }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: "#ef4444",
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
+        minHeight: 48,
+        width: "auto",
+        maxWidth: 320,
+        alignSelf: "flex-start",
+        marginLeft: 16,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 12 }}
+      text1Style={{ fontSize: 13, fontWeight: "400", color: COLORS.text }}
+      text2Style={{ fontSize: 12, fontWeight: "400", color: COLORS.textSecondary }}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: "#3b82f6",
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
+        minHeight: 48,
+        width: "auto",
+        maxWidth: 320,
+        alignSelf: "flex-start",
+        marginLeft: 16,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 12 }}
+      text1Style={{ fontSize: 13, fontWeight: "400", color: COLORS.text }}
+      text2Style={{ fontSize: 12, fontWeight: "400", color: COLORS.textSecondary }}
+    />
+  ),
+};
 
 export default function AppNavigation() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   return (
-    <NavigationContainer>
-      {isAuthenticated ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
+    <View style={{ flex: 1 }}>
+      <NavigationContainer>
+        {isAuthenticated ? <AppStack /> : <AuthStack />}
+      </NavigationContainer>
+      <Toast config={toastConfig} />
+    </View>
   );
 }

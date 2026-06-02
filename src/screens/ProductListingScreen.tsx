@@ -6,18 +6,20 @@ import { useProducts, useCategories } from "../hooks/useApi";
 import { useCartStore } from "../store/cart-store";
 import { Ionicons } from "@expo/vector-icons";
 import { Product } from "../types";
+import { useIsFocused } from "@react-navigation/native";
 
 export default function ProductListingScreen({ navigation, route }: any) {
+  const isFocused = useIsFocused();
   const { sectionId, sectionName, tableNumber } = route.params;
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const { data: productsData, isLoading } = useProducts({
     sectionId,
     ...(selectedCategory ? { categoryId: selectedCategory } : {}),
     isAvailable: "true",
-  });
-  const { data: categoriesData } = useCategories();
-  const products = productsData?.data?.products || [];
-  const categories = categoriesData?.data?.categories || [];
+  }, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
+  const { data: categoriesData } = useCategories(undefined, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
+  const products = (Array.isArray(productsData?.data) ? [...productsData.data] : []).sort((a, b) => a.name.localeCompare(b.name));
+  const categories = Array.isArray(categoriesData?.data) ? categoriesData.data : [];
   const { addItem, items, getItemCount, getTotal } = useCartStore();
 
   if (isLoading) return <LoadingSpinner />;

@@ -3,18 +3,13 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl } from "react-native
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, LoadingSpinner } from "../components/ui";
 import { useSalesReport } from "../hooks/useApi";
-import { SalesReportItem } from "../types";
 
 export default function ReportsScreen() {
   const { data, isLoading, refetch } = useSalesReport();
-  const report = data?.data || [];
+  const report = data?.data;
   const [refreshing, setRefreshing] = React.useState(false);
 
   if (isLoading) return <LoadingSpinner />;
-
-  // Calculate totals from the daily array
-  const totalSales = report.reduce((sum, item: SalesReportItem) => sum + item.revenue, 0);
-  const totalOrders = report.reduce((sum, item: SalesReportItem) => sum + item.orderCount, 0);
 
   return (
     <ScrollView
@@ -24,22 +19,46 @@ export default function ReportsScreen() {
       {/* Total Sales */}
       <Card style={styles.totalCard}>
         <Text style={styles.totalLabel}>Total Sales</Text>
-        <Text style={styles.totalAmount}>₹{totalSales.toFixed(0)}</Text>
-        <Text style={styles.totalOrders}>{totalOrders} orders</Text>
+        <Text style={styles.totalAmount}>₹{report?.totalSales?.toFixed(0) || 0}</Text>
+        <Text style={styles.totalOrders}>{report?.orderCount || 0} orders</Text>
       </Card>
 
-      {/* Daily Breakdown */}
-      <Text style={styles.sectionTitle}>Daily Breakdown</Text>
-      {report.length === 0 && (
-        <Text style={{ color: COLORS.textSecondary, marginTop: 10 }}>No sales data for this period.</Text>
-      )}
-      {report.map((day: SalesReportItem, i: number) => (
-        <Card key={i} style={styles.dayRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.dayDate}>{new Date(day.date).toLocaleDateString()}</Text>
-            <Text style={styles.dayOrders}>{day.orderCount} orders</Text>
+      {/* Payment Breakdown */}
+      <Text style={styles.sectionTitle}>Payment Breakdown</Text>
+      <View style={styles.row}>
+        {report?.paymentBreakdown?.map((p: any, i: number) => (
+          <Card key={i} style={styles.payCard}>
+            <Text style={styles.payMethod}>{p.method}</Text>
+            <Text style={styles.payAmount}>₹{p.total?.toFixed(0)}</Text>
+            <Text style={styles.payCount}>{p.count} orders</Text>
+          </Card>
+        ))}
+      </View>
+
+      {/* Top Products */}
+      <Text style={styles.sectionTitle}>Top Products</Text>
+      {report?.topProducts?.slice(0, 10).map((p: any, i: number) => (
+        <Card key={i} style={styles.productRow}>
+          <View style={styles.rank}>
+            <Text style={styles.rankText}>#{i + 1}</Text>
           </View>
-          <Text style={styles.dayRevenue}>₹{day.revenue.toFixed(0)}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.productName}>{p.name}</Text>
+            <Text style={styles.productQty}>{p.quantity} sold</Text>
+          </View>
+          <Text style={styles.productRevenue}>₹{p.revenue?.toFixed(0)}</Text>
+        </Card>
+      ))}
+
+      {/* Section Sales */}
+      <Text style={styles.sectionTitle}>Section-wise Sales</Text>
+      {report?.sectionWiseSales?.map((s: any, i: number) => (
+        <Card key={i} style={styles.sectionRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionName}>{s.section}</Text>
+            <Text style={styles.sectionOrders}>{s.orderCount} orders</Text>
+          </View>
+          <Text style={styles.sectionRevenue}>₹{s.revenue?.toFixed(0)}</Text>
         </Card>
       ))}
 
@@ -55,8 +74,19 @@ const styles = StyleSheet.create({
   totalAmount: { fontSize: 36, fontWeight: "800", color: COLORS.success, marginVertical: 4 },
   totalOrders: { fontSize: 13, color: COLORS.textSecondary },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.sm, marginTop: SPACING.md },
-  dayRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.xs },
-  dayDate: { fontSize: 14, fontWeight: "600", color: COLORS.text },
-  dayOrders: { fontSize: 11, color: COLORS.textSecondary },
-  dayRevenue: { fontSize: 16, fontWeight: "700", color: COLORS.success },
+  row: { flexDirection: "row", gap: SPACING.sm },
+  payCard: { flex: 1, alignItems: "center" },
+  payMethod: { fontSize: 13, color: COLORS.textSecondary, fontWeight: "600" },
+  payAmount: { fontSize: 20, fontWeight: "800", color: COLORS.text, marginVertical: 2 },
+  payCount: { fontSize: 11, color: COLORS.textMuted },
+  productRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.xs },
+  rank: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary + "20", justifyContent: "center", alignItems: "center", marginRight: SPACING.md },
+  rankText: { fontSize: 12, fontWeight: "800", color: COLORS.primary },
+  productName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
+  productQty: { fontSize: 11, color: COLORS.textSecondary },
+  productRevenue: { fontSize: 16, fontWeight: "700", color: COLORS.success },
+  sectionRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.xs },
+  sectionName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
+  sectionOrders: { fontSize: 11, color: COLORS.textSecondary },
+  sectionRevenue: { fontSize: 16, fontWeight: "700", color: COLORS.success },
 });

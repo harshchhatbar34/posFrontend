@@ -35,9 +35,9 @@ export const PAYMENT_METHODS = {
 
 // Color palette
 export const COLORS = {
-  primary: "#6366F1",       // Indigo
-  primaryDark: "#4F46E5",
-  primaryLight: "#818CF8",
+  primary: "#10B981",       // Emerald Green
+  primaryDark: "#059669",
+  primaryLight: "#059669",  // Slightly darker green for contrast
   secondary: "#F59E0B",     // Amber
   secondaryDark: "#D97706",
   success: "#10B981",       // Emerald
@@ -45,32 +45,32 @@ export const COLORS = {
   danger: "#EF4444",        // Red
   info: "#3B82F6",          // Blue
   
-  background: "#0F172A",    // Slate 900
-  surface: "#1E293B",       // Slate 800
-  surfaceLight: "#334155",  // Slate 700
-  card: "#1E293B",
+  background: "#FFFFFF",    // Pure white background
+  surface: "#F8FAFC",       // Off-white/very light slate surface
+  surfaceLight: "#F1F5F9",  // Light grey highlights
+  card: "#FFFFFF",          // White card
   
-  text: "#F8FAFC",          // Slate 50
-  textSecondary: "#94A3B8", // Slate 400
-  textMuted: "#64748B",     // Slate 500
+  text: "#0F172A",          // Slate 900 (Dark text)
+  textSecondary: "#475569", // Slate 600
+  textMuted: "#94A3B8",     // Slate 400
   
-  border: "#334155",        // Slate 700
-  divider: "#1E293B",
+  border: "#E2E8F0",        // Slate 200 border
+  divider: "#F1F5F9",       // Slate 100 divider
   
   white: "#FFFFFF",
   black: "#000000",
   
   // Status colors
-  statusPending: "#F59E0B",
-  statusInProgress: "#3B82F6",
-  statusCompleted: "#10B981",
-  statusServed: "#8B5CF6",
-  statusCancelled: "#EF4444",
+  statusPending: "#D97706",   // Darker amber for contrast
+  statusInProgress: "#2563EB", // Darker blue for contrast
+  statusCompleted: "#059669",  // Darker green for contrast
+  statusServed: "#7C3AED",     // Darker purple for contrast
+  statusCancelled: "#DC2626",  // Darker red for contrast
   
   // Order item status colors
-  itemPending: "#F59E0B",
-  itemUnderCook: "#3B82F6",
-  itemCooked: "#10B981",
+  itemPending: "#D97706",
+  itemUnderCook: "#2563EB",
+  itemCooked: "#059669",
 } as const;
 
 export const FONTS = {
