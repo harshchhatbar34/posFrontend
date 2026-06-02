@@ -118,8 +118,13 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
-  meta?: PaginationMeta;
 }
+
+export type PaginatedData<K extends string, T> = {
+  [key in K]: T[];
+} & {
+  meta: PaginationMeta;
+};
 
 export interface PaginationMeta {
   page: number;
@@ -137,38 +142,13 @@ export interface LoginResponse {
 }
 
 export interface KitchenSummaryItem {
-  name: string;
-  price: number;
-  quantity: number;
-  totalAmount: number;
+  productId: string;
+  productName: string;
+  totalQuantity: number;
 }
 
-export interface KitchenData {
-  orders: Order[];
-  stats: {
-    pending: number;
-    inProgress: number;
-    completed: number;
-    todayOrders: number;
-  };
-}
-
-export interface SalesReport {
-  totalSales: number;
+export interface SalesReportItem {
+  date: string;
+  revenue: number;
   orderCount: number;
-  paymentBreakdown: Array<{
-    method: PaymentMethod;
-    total: number;
-    count: number;
-  }>;
-  topProducts: Array<{
-    name: string;
-    quantity: number;
-    revenue: number;
-  }>;
-  sectionWiseSales: Array<{
-    section: string;
-    orderCount: number;
-    revenue: number;
-  }>;
 }

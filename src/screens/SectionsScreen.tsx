@@ -8,7 +8,7 @@ import { Section } from "../types";
 
 export default function SectionsScreen({ navigation }: any) {
   const { data, isLoading, refetch } = useSections();
-  const sections = data?.data || [];
+  const sections = data?.data?.sections || [];
   const [refreshing, setRefreshing] = React.useState(false);
 
   if (isLoading) return <LoadingSpinner />;

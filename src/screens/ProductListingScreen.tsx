@@ -16,8 +16,8 @@ export default function ProductListingScreen({ navigation, route }: any) {
     isAvailable: "true",
   });
   const { data: categoriesData } = useCategories();
-  const products = productsData?.data || [];
-  const categories = categoriesData?.data || [];
+  const products = productsData?.data?.products || [];
+  const categories = categoriesData?.data?.categories || [];
   const { addItem, items, getItemCount, getTotal } = useCartStore();
 
   if (isLoading) return <LoadingSpinner />;

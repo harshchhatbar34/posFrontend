@@ -14,8 +14,7 @@ export default function DashboardScreen({ navigation }: any) {
   const { data: ordersData, isLoading, refetch } = useOrders();
   const { data: kitchenData } = useKitchenDashboard();
 
-  const stats = kitchenData?.data?.stats;
-  const orders = ordersData?.data || [];
+  const orders = ordersData?.data?.orders || [];
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = async () => {
@@ -99,26 +98,7 @@ export default function DashboardScreen({ navigation }: any) {
       </View>
 
       {/* Stats Cards */}
-      {stats && (
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: COLORS.statusPending + "20" }]}>
-            <Text style={[styles.statNumber, { color: COLORS.statusPending }]}>{stats.pending}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: COLORS.statusInProgress + "20" }]}>
-            <Text style={[styles.statNumber, { color: COLORS.statusInProgress }]}>{stats.inProgress}</Text>
-            <Text style={styles.statLabel}>In Progress</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: COLORS.statusCompleted + "20" }]}>
-            <Text style={[styles.statNumber, { color: COLORS.statusCompleted }]}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: COLORS.primary + "20" }]}>
-            <Text style={[styles.statNumber, { color: COLORS.primary }]}>{stats.todayOrders}</Text>
-            <Text style={styles.statLabel}>Today</Text>
-          </View>
-        </View>
-      )}
+
 
       {/* Quick Actions Grid */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>

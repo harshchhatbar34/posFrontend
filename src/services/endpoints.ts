@@ -9,10 +9,10 @@ import {
   Order,
   OrderItem,
   InventoryItem,
-  KitchenData,
   KitchenSummaryItem,
-  SalesReport,
+  SalesReportItem,
   ApiResponse,
+  PaginatedData,
 } from "../types";
 
 // ============ Auth API ============
@@ -38,7 +38,7 @@ export const authApi = {
 // ============ Users API ============
 export const usersApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<User[]>>("/users", { params }),
+    api.get<ApiResponse<PaginatedData<"users", User>>>("/users", { params }),
 
   getById: (id: string) => api.get<ApiResponse<User>>(`/users/${id}`),
 
@@ -46,7 +46,7 @@ export const usersApi = {
     api.post<ApiResponse<User>>("/users", data),
 
   update: (id: string, data: Partial<User>) =>
-    api.patch<ApiResponse<User>>(`/users/${id}`, data),
+    api.put<ApiResponse<User>>(`/users/${id}`, data),
 
   delete: (id: string) => api.delete(`/users/${id}`),
 };
@@ -54,7 +54,7 @@ export const usersApi = {
 // ============ Sections API ============
 export const sectionsApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<Section[]>>("/sections", { params }),
+    api.get<ApiResponse<PaginatedData<"sections", Section>>>("/sections", { params }),
 
   getById: (id: string) => api.get<ApiResponse<Section>>(`/sections/${id}`),
 
@@ -70,7 +70,7 @@ export const sectionsApi = {
 // ============ Tables API ============
 export const tablesApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<Table[]>>("/tables", { params }),
+    api.get<ApiResponse<PaginatedData<"tables", Table>>>("/tables", { params }),
 
   getById: (id: string) => api.get<ApiResponse<Table>>(`/tables/${id}`),
 
@@ -86,7 +86,7 @@ export const tablesApi = {
 // ============ Categories API ============
 export const categoriesApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<Category[]>>("/categories", { params }),
+    api.get<ApiResponse<PaginatedData<"categories", Category>>>("/categories", { params }),
 
   getById: (id: string) =>
     api.get<ApiResponse<Category>>(`/categories/${id}`),
@@ -103,7 +103,7 @@ export const categoriesApi = {
 // ============ Products API ============
 export const productsApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<Product[]>>("/products", { params }),
+    api.get<ApiResponse<PaginatedData<"products", Product>>>("/products", { params }),
 
   getById: (id: string) =>
     api.get<ApiResponse<Product>>(`/products/${id}`),
@@ -120,7 +120,7 @@ export const productsApi = {
 // ============ Orders API ============
 export const ordersApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<Order[]>>("/orders", { params }),
+    api.get<ApiResponse<PaginatedData<"orders", Order>>>("/orders", { params }),
 
   getById: (id: string) => api.get<ApiResponse<Order>>(`/orders/${id}`),
 
@@ -131,10 +131,10 @@ export const ordersApi = {
   }) => api.post<ApiResponse<Order>>("/orders", data),
 
   updateStatus: (id: string, status: string) =>
-    api.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
+    api.put<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
 
   recordPayment: (id: string, paymentMethod: string) =>
-    api.patch<ApiResponse<Order>>(`/orders/${id}/payment`, { paymentMethod }),
+    api.post<ApiResponse<Order>>(`/orders/${id}/payment`, { paymentMethod }),
 
   updateItemStatus: (itemId: string, status: string) =>
     api.patch<ApiResponse<OrderItem>>(`/order-items/${itemId}/status`, {
@@ -145,7 +145,7 @@ export const ordersApi = {
 // ============ Kitchen API ============
 export const kitchenApi = {
   getDashboard: (sectionId?: string) =>
-    api.get<ApiResponse<KitchenData>>("/kitchen", {
+    api.get<ApiResponse<Order[]>>("/kitchen", {
       params: sectionId ? { sectionId } : {},
     }),
 
@@ -158,7 +158,7 @@ export const kitchenApi = {
 // ============ Inventory API ============
 export const inventoryApi = {
   getAll: (params?: Record<string, string>) =>
-    api.get<ApiResponse<InventoryItem[]>>("/inventory", { params }),
+    api.get<ApiResponse<PaginatedData<"inventory", InventoryItem>>>("/inventory", { params }),
 
   getById: (id: string) =>
     api.get<ApiResponse<InventoryItem>>(`/inventory/${id}`),
@@ -169,7 +169,7 @@ export const inventoryApi = {
   update: (id: string, data: Partial<InventoryItem>) =>
     api.patch<ApiResponse<InventoryItem>>(`/inventory/${id}`, data),
 
-  addStock: (id: string, data: { quantityAdded: number; note?: string }) =>
+  addStock: (id: string, data: { quantity: number; type: string; cost: number; notes: string }) =>
     api.post<ApiResponse<InventoryItem>>(`/inventory/${id}/stock`, data),
 
   recordUsage: (id: string, data: { quantityUsed: number; note?: string }) =>
@@ -179,7 +179,7 @@ export const inventoryApi = {
 // ============ Reports API ============
 export const reportsApi = {
   getSales: (params?: { startDate?: string; endDate?: string }) =>
-    api.get<ApiResponse<SalesReport>>("/reports/sales", { params }),
+    api.get<ApiResponse<SalesReportItem[]>>("/reports/sales", { params }),
 
   getOrders: (params?: { startDate?: string; endDate?: string }) =>
     api.get<ApiResponse<unknown>>("/reports/orders", { params }),

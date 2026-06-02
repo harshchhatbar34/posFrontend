@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "mobile",
-    "slug": "mobile",
+    "slug": "pos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,12 +29,13 @@
     },
     "extra": {
       "eas": {
-        "projectId": "7c05b575-53fc-471d-8ee2-40b19678abad"
+        "projectId": "f21adb50-d0e5-426f-85af-d60d35337fa2"
       }
     },
     "plugins": [
       "expo-secure-store",
       "expo-font"
-    ]
+    ],
+    "owner": "harshchhatbar34"
   }
 }

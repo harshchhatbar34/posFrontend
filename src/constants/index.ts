@@ -1,7 +1,7 @@
 // ============ App Constants ============
 
 // Change this to your actual backend URL when deploying
-export const API_BASE_URL = "https://posbackend-8elh.onrender.com"; // Android emulator localhost
+export const API_BASE_URL = "https://pos-backend-jeg5.vercel.app"; // Android emulator localhost
 // export const API_BASE_URL = "http://localhost:3000"; // iOS simulator
 // export const API_BASE_URL = "https://your-api.com"; // Production
 

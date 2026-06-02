@@ -9,7 +9,7 @@ export default function InventoryScreen() {
   const { data, isLoading, refetch } = useInventory();
   const addStock = useAddStock();
   const recordUsage = useRecordUsage();
-  const items = data?.data || [];
+  const items = data?.data?.inventory || [];
   const [refreshing, setRefreshing] = useState(false);
 
   if (isLoading) return <LoadingSpinner />;
@@ -25,7 +25,7 @@ export default function InventoryScreen() {
             text: "Add",
             onPress: (qty?: string) => {
               if (qty && Number(qty) > 0) {
-                addStock.mutate({ id: item.id, data: { quantityAdded: Number(qty) } });
+                addStock.mutate({ id: item.id, data: { quantity: Number(qty), type: "PURCHASE", cost: 0, notes: "Added from app" } });
               }
             },
           },

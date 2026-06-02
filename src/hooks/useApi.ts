@@ -232,7 +232,7 @@ export function useAddStock() {
       data,
     }: {
       id: string;
-      data: { quantityAdded: number; note?: string };
+      data: { quantity: number; type: string; cost: number; notes: string };
     }) => inventoryApi.addStock(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inventory"] }),
   });

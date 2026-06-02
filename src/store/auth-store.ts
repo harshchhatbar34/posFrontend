@@ -1,6 +1,22 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { User, Role } from "../types";
+
+const setItem = async (key: string, value: string) => {
+  if (Platform.OS === "web") localStorage.setItem(key, value);
+  else await SecureStore.setItemAsync(key, value);
+};
+
+const getItem = async (key: string) => {
+  if (Platform.OS === "web") return localStorage.getItem(key);
+  return await SecureStore.getItemAsync(key);
+};
+
+const deleteItem = async (key: string) => {
+  if (Platform.OS === "web") localStorage.removeItem(key);
+  else await SecureStore.deleteItemAsync(key);
+};
 
 // ============ Auth Store (Zustand) ============
 
@@ -30,9 +46,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setAuth: async (user, accessToken, refreshToken) => {
     set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
     try {
-      await SecureStore.setItemAsync("accessToken", accessToken);
-      await SecureStore.setItemAsync("refreshToken", refreshToken);
-      await SecureStore.setItemAsync("user", JSON.stringify(user));
+      await setItem("accessToken", accessToken);
+      await setItem("refreshToken", refreshToken);
+      await setItem("user", JSON.stringify(user));
     } catch (e) {
       console.error("Failed to store auth:", e);
     }
@@ -41,8 +57,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setTokens: async (accessToken, refreshToken) => {
     set({ accessToken, refreshToken });
     try {
-      await SecureStore.setItemAsync("accessToken", accessToken);
-      await SecureStore.setItemAsync("refreshToken", refreshToken);
+      await setItem("accessToken", accessToken);
+      await setItem("refreshToken", refreshToken);
     } catch (e) {
       console.error("Failed to store tokens:", e);
     }
@@ -57,9 +73,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isLoading: false,
     });
     try {
-      await SecureStore.deleteItemAsync("accessToken");
-      await SecureStore.deleteItemAsync("refreshToken");
-      await SecureStore.deleteItemAsync("user");
+      await deleteItem("accessToken");
+      await deleteItem("refreshToken");
+      await deleteItem("user");
     } catch (e) {
       console.error("Failed to clear auth:", e);
     }
@@ -68,9 +84,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadStoredAuth: async () => {
     try {
       const [accessToken, refreshToken, userStr] = await Promise.all([
-        SecureStore.getItemAsync("accessToken"),
-        SecureStore.getItemAsync("refreshToken"),
-        SecureStore.getItemAsync("user"),
+        getItem("accessToken"),
+        getItem("refreshToken"),
+        getItem("user"),
       ]);
 
       if (accessToken && refreshToken && userStr) {

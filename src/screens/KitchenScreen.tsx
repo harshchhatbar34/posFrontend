@@ -20,8 +20,7 @@ export default function KitchenScreen() {
 
   if (isLoading) return <LoadingSpinner />;
 
-  const orders = data?.data?.orders || [];
-  const stats = data?.data?.stats;
+  const orders = data?.data || [];
   const summary = summaryData?.data || [];
 
   const getElapsed = (createdAt: string) => {
@@ -40,30 +39,15 @@ export default function KitchenScreen() {
   return (
     <View style={styles.container}>
       {/* Stats */}
-      {stats && (
-        <View style={styles.statsRow}>
-          <View style={[styles.stat, { backgroundColor: COLORS.statusPending + "20" }]}>
-            <Text style={[styles.statNum, { color: COLORS.statusPending }]}>{stats.pending}</Text>
-            <Text style={styles.statLbl}>Pending</Text>
-          </View>
-          <View style={[styles.stat, { backgroundColor: COLORS.statusInProgress + "20" }]}>
-            <Text style={[styles.statNum, { color: COLORS.statusInProgress }]}>{stats.inProgress}</Text>
-            <Text style={styles.statLbl}>Cooking</Text>
-          </View>
-          <View style={[styles.stat, { backgroundColor: COLORS.success + "20" }]}>
-            <Text style={[styles.statNum, { color: COLORS.success }]}>{stats.completed}</Text>
-            <Text style={styles.statLbl}>Done</Text>
-          </View>
-        </View>
-      )}
+
 
       {/* Summary */}
       {summary.length > 0 && (
         <View style={styles.summaryRow}>
           {summary.slice(0, 5).map((s: any, i: number) => (
             <View key={i} style={styles.summaryChip}>
-              <Text style={styles.summaryName}>{s.name}</Text>
-              <Text style={styles.summaryQty}>×{s.quantity}</Text>
+              <Text style={styles.summaryName}>{s.productName}</Text>
+              <Text style={styles.summaryQty}>×{s.totalQuantity}</Text>
             </View>
           ))}
         </View>

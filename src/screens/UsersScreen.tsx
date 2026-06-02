@@ -21,7 +21,7 @@ import { User, Role } from "../types";
 export default function UsersScreen() {
   const currentUser = useAuthStore((s) => s.user);
   const { data, isLoading, refetch } = useUsers();
-  const users = data?.data || [];
+  const users = data?.data?.users || [];
   
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

@@ -9,7 +9,7 @@ export default function OrdersScreen({ navigation }: any) {
   const { data, isLoading, refetch } = useOrders();
   const updateStatus = useUpdateOrderStatus();
   const recordPayment = useRecordPayment();
-  const orders = data?.data || [];
+  const orders = data?.data?.orders || [];
   const [refreshing, setRefreshing] = React.useState(false);
 
   if (isLoading) return <LoadingSpinner />;

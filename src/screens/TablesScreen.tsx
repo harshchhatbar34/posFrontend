@@ -9,7 +9,7 @@ import { Table } from "../types";
 export default function TablesScreen({ navigation, route }: any) {
   const { sectionId, sectionName } = route.params;
   const { data, isLoading, refetch } = useTables({ sectionId });
-  const tables = data?.data || [];
+  const tables = data?.data?.tables || [];
   const setTable = useCartStore((s) => s.setTable);
   const [refreshing, setRefreshing] = React.useState(false);
 

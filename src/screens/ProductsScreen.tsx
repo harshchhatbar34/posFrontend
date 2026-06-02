@@ -7,7 +7,7 @@ import { Product } from "../types";
 
 export default function ProductsScreen() {
   const { data, isLoading, refetch } = useProducts();
-  const products = data?.data || [];
+  const products = data?.data?.products || [];
   const [refreshing, setRefreshing] = React.useState(false);
 
   if (isLoading) return <LoadingSpinner />;
