@@ -83,6 +83,7 @@ export interface OrderItem {
   price: number;
   status: OrderItemStatus;
   product?: Product;
+  notes?: string;
 }
 
 export interface OrderLog {
@@ -151,4 +152,12 @@ export interface SalesReportItem {
   date: string;
   revenue: number;
   orderCount: number;
+}
+
+export interface SalesReportResponse {
+  totalSales: number;
+  orderCount: number;
+  paymentBreakdown: Array<{ method: string; total: number; count: number }>;
+  topProducts: Array<{ name: string; quantity: number; revenue: number }>;
+  sectionWiseSales: Array<{ section: string; orderCount: number; revenue: number }>;
 }

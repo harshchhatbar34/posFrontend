@@ -7,10 +7,10 @@ const show = (type: ToastType, title: string, message?: string) => {
     type,
     text1: title,
     text2: message,
-    position: "bottom",
+    position: "top",
     visibilityTime: 3000,
     autoHide: true,
-    bottomOffset: 40,
+    topOffset: 50,
   });
 };
 

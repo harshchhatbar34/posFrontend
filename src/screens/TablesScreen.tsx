@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { StatusBadge, LoadingSpinner, EmptyState, Button, Input } from "../components/ui";
 import { useTables, useCreateTable } from "../hooks/useApi";
@@ -76,22 +76,27 @@ export default function TablesScreen({ navigation, route }: any) {
         </TouchableOpacity>
       )}
 
-      <Modal visible={modalVisible} transparent animationType="fade">
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Table</Text>
-            <Input
-              label="Table Number"
-              value={tableNumber}
-              onChangeText={setTableNumber}
-              placeholder="e.g., 5"
-              keyboardType="numeric"
-            />
-            <View style={styles.modalActions}>
-              <Button title="Cancel" variant="outline" onPress={() => setModalVisible(false)} style={{ flex: 1 }} />
-              <Button title="Create" onPress={handleCreateTable} style={{ flex: 1 }} isLoading={createTable.isPending} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%", maxWidth: 340 }}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Table</Text>
+              <Input
+                label="Table Number"
+                value={tableNumber}
+                onChangeText={setTableNumber}
+                placeholder="e.g., 5"
+                keyboardType="numeric"
+              />
+              <View style={styles.modalActions}>
+                <Button title="Cancel" variant="outline" onPress={() => setModalVisible(false)} style={{ flex: 1 }} />
+                <Button title="Create" onPress={handleCreateTable} style={{ flex: 1 }} loading={createTable.isPending} />
+              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

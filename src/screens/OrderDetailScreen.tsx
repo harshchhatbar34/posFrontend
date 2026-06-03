@@ -9,6 +9,7 @@ import {
   useRemoveOrderItem,
   useDeleteOrder,
   useProducts,
+  useRecordPayment,
 } from "../hooks/useApi";
 import { OrderItem, Product } from "../types";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ export default function OrderDetailScreen({ route, navigation }: any) {
   const addItems = useAddOrderItems();
   const removeItem = useRemoveOrderItem();
   const deleteOrder = useDeleteOrder();
+  const recordPayment = useRecordPayment();
 
   const order = data?.data;
 
@@ -27,12 +29,13 @@ export default function OrderDetailScreen({ route, navigation }: any) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [removeConfirmId, setRemoveConfirmId] = useState<string | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Record<string, number>>({});
 
   // Fetch products for the order's section when modal opens
   const sectionId = order?.table?.section?.id || order?.table?.sectionId;
   const { data: productsData } = useProducts(
-    { sectionId, isAvailable: "true" },
+    sectionId ? { sectionId, isAvailable: "true" } : undefined,
     { enabled: addModalVisible && !!sectionId }
   );
   const availableProducts = (Array.isArray(productsData?.data) ? [...productsData.data] : []).sort(
@@ -65,6 +68,18 @@ export default function OrderDetailScreen({ route, navigation }: any) {
       { orderId: order.id, itemId },
       { onSuccess: () => { setRemoveConfirmId(null); refetch(); } }
     );
+  };
+
+  const confirmPayment = (method: string) => {
+    recordPayment.mutate(
+      { id: order.id, paymentMethod: method },
+      {
+        onSuccess: () => {
+          refetch();
+        },
+      }
+    );
+    setPaymentModalVisible(false);
   };
 
   const toggleProduct = (productId: string) => {
@@ -189,6 +204,18 @@ export default function OrderDetailScreen({ route, navigation }: any) {
             <View style={styles.divider} />
             <Text style={styles.sectionTitle}>Actions</Text>
 
+            {/* Mark Paid Button */}
+            {order.status === "SERVED" && (
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setPaymentModalVisible(true)} activeOpacity={0.8}>
+                <Ionicons name="card-outline" size={22} color={COLORS.success} />
+                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                  <Text style={[styles.actionTitle, { color: COLORS.success }]}>Mark Paid</Text>
+                  <Text style={styles.actionSub}>Record cash or UPI payment</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+
             {/* Add More Items */}
             {canModify && (
               <TouchableOpacity style={styles.actionBtn} onPress={() => setAddModalVisible(true)} activeOpacity={0.8}>
@@ -309,6 +336,44 @@ export default function OrderDetailScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* Payment Selection Modal */}
+      <Modal visible={paymentModalVisible} transparent animationType="fade" onRequestClose={() => setPaymentModalVisible(false)}>
+        <View style={styles.payModalOverlay}>
+          <View style={styles.payModalContent}>
+            <Text style={styles.modalTitle}>Select Payment Method</Text>
+            <Text style={styles.modalSubtitle}>
+              Please select how the customer paid for this order:
+            </Text>
+
+            <View style={styles.paymentOptions}>
+              <TouchableOpacity
+                style={[styles.paymentOptionBtn, { borderColor: COLORS.success }]}
+                onPress={() => confirmPayment("CASH")}
+              >
+                <Text style={styles.paymentOptionEmoji}>💵</Text>
+                <Text style={[styles.paymentOptionText, { color: COLORS.success }]}>Cash</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.paymentOptionBtn, { borderColor: COLORS.info }]}
+                onPress={() => confirmPayment("ONLINE")}
+              >
+                <Text style={styles.paymentOptionEmoji}>📱</Text>
+                <Text style={[styles.paymentOptionText, { color: COLORS.info }]}>UPI / Online</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Button
+              title="Cancel"
+              variant="outline"
+              onPress={() => setPaymentModalVisible(false)}
+              fullWidth
+              style={{ marginTop: SPACING.md }}
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -342,10 +407,19 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalContent: { backgroundColor: COLORS.surface, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, padding: SPACING.lg, paddingBottom: SPACING.xxl },
   modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text },
+  modalSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACING.lg, textAlign: "center", lineHeight: 18 },
   productRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   productName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
   productPrice: { fontSize: 13, color: COLORS.success, marginTop: 2, fontWeight: "700" },
   qtyControl: { flexDirection: "row", alignItems: "center", gap: 8 },
   qtyBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.sm, padding: 6, alignItems: "center", justifyContent: "center" },
   qtyText: { fontSize: 16, fontWeight: "800", color: COLORS.text, minWidth: 24, textAlign: "center" },
+  
+  // Payment Modal Specific styles
+  payModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.lg },
+  payModalContent: { backgroundColor: COLORS.surface, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg, width: "100%", maxWidth: 340, elevation: 5, shadowColor: COLORS.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 10 },
+  paymentOptions: { flexDirection: "row", gap: SPACING.md, justifyContent: "space-between", marginBottom: SPACING.sm },
+  paymentOptionBtn: { flex: 1, alignItems: "center", paddingVertical: SPACING.md, borderWidth: 1.5, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.card },
+  paymentOptionEmoji: { fontSize: 32, marginBottom: SPACING.xs },
+  paymentOptionText: { fontSize: 14, fontWeight: "700", textAlign: "center" },
 });

@@ -299,7 +299,7 @@ export function useCreateInventoryItem() {
 export function useAddStock() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { quantity: number; type: string; cost: number; notes: string } }) => inventoryApi.addStock(id, data),
+    mutationFn: ({ id, data }: { id: string; data: { quantityAdded: number; note?: string } }) => inventoryApi.addStock(id, data),
     onSuccess: (res) => { qc.invalidateQueries({ queryKey: ["inventory"] }); toast.success(res.data?.message || "Stock added!"); },
     onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to add stock"),
   });

@@ -11,6 +11,7 @@ import {
   InventoryItem,
   KitchenSummaryItem,
   SalesReportItem,
+  SalesReportResponse,
   ApiResponse,
   PaginatedData,
 } from "../types";
@@ -45,7 +46,7 @@ export const usersApi = {
   create: (data: Partial<User> & { password: string }) =>
     api.post<ApiResponse<User>>("/users", data),
 
-  update: (id: string, data: Partial<User> | { action: string }) =>
+  update: (id: string, data: Partial<User> | { isActive: boolean }) =>
     api.patch<ApiResponse<User>>(`/users/${id}`, data),
 
   delete: (id: string) => api.delete(`/users/${id}`),
@@ -62,7 +63,7 @@ export const sectionsApi = {
     api.post<ApiResponse<Section>>("/sections", data),
 
   update: (id: string, data: Partial<Section>) =>
-    api.patch<ApiResponse<Section>>(`/sections/${id}`, data),
+    api.put<ApiResponse<Section>>(`/sections/${id}`, data),
 
   delete: (id: string) => api.delete(`/sections/${id}`),
 };
@@ -78,7 +79,7 @@ export const tablesApi = {
     api.post<ApiResponse<Table>>("/tables", data),
 
   update: (id: string, data: Partial<Table>) =>
-    api.patch<ApiResponse<Table>>(`/tables/${id}`, data),
+    api.put<ApiResponse<Table>>(`/tables/${id}`, data),
 
   delete: (id: string) => api.delete(`/tables/${id}`),
 };
@@ -95,7 +96,7 @@ export const categoriesApi = {
     api.post<ApiResponse<Category>>("/categories", data),
 
   update: (id: string, data: Partial<Category>) =>
-    api.patch<ApiResponse<Category>>(`/categories/${id}`, data),
+    api.put<ApiResponse<Category>>(`/categories/${id}`, data),
 
   delete: (id: string) => api.delete(`/categories/${id}`),
 };
@@ -112,7 +113,7 @@ export const productsApi = {
     api.post<ApiResponse<Product>>("/products", data),
 
   update: (id: string, data: Partial<Product>) =>
-    api.patch<ApiResponse<Product>>(`/products/${id}`, data),
+    api.put<ApiResponse<Product>>(`/products/${id}`, data),
 
   delete: (id: string) => api.delete(`/products/${id}`),
 };
@@ -174,9 +175,9 @@ export const inventoryApi = {
     api.post<ApiResponse<InventoryItem>>("/inventory", data),
 
   update: (id: string, data: Partial<InventoryItem>) =>
-    api.patch<ApiResponse<InventoryItem>>(`/inventory/${id}`, data),
+    api.put<ApiResponse<InventoryItem>>(`/inventory/${id}`, data),
 
-  addStock: (id: string, data: { quantity: number; type: string; cost: number; notes: string }) =>
+  addStock: (id: string, data: { quantityAdded: number; note?: string }) =>
     api.post<ApiResponse<InventoryItem>>(`/inventory/${id}/stock`, data),
 
   recordUsage: (id: string, data: { quantityUsed: number; note?: string }) =>
@@ -186,7 +187,7 @@ export const inventoryApi = {
 // ============ Reports API ============
 export const reportsApi = {
   getSales: (params?: { startDate?: string; endDate?: string }) =>
-    api.get<ApiResponse<SalesReportItem[]>>("/reports/sales", { params }),
+    api.get<ApiResponse<SalesReportResponse>>("/reports/sales", { params }),
 
   getOrders: (params?: { startDate?: string; endDate?: string }) =>
     api.get<ApiResponse<unknown>>("/reports/orders", { params }),

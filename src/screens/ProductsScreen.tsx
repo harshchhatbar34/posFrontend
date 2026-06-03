@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Modal, ScrollView, Alert } from "react-native";
+import { View, Text, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Modal, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, Button, LoadingSpinner, EmptyState, Input } from "../components/ui";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useCategories, useSections } from "../hooks/useApi";
@@ -142,59 +142,64 @@ export default function ProductsScreen() {
       )}
 
       {/* Create/Edit Product Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{isEditing ? "Edit Product" : "Add New Product"}</Text>
-              <Input
-                label="Product Name"
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., Masala Dosa"
-              />
-              <Input
-                label="Price (₹)"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="numeric"
-                placeholder="e.g., 150"
-              />
-              
-              <Text style={styles.chipLabel}>Category</Text>
-              <View style={styles.chipContainer}>
-                {categories.map((c: any) => (
-                  <TouchableOpacity
-                    key={c.id}
-                    activeOpacity={0.7}
-                    style={[styles.chip, categoryId === c.id && styles.chipActive]}
-                    onPress={() => setCategoryId(c.id)}
-                  >
-                    <Text style={[styles.chipText, categoryId === c.id && styles.chipTextActive]}>{c.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%", maxWidth: 400 }}
+          >
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{isEditing ? "Edit Product" : "Add New Product"}</Text>
+                <Input
+                  label="Product Name"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g., Masala Dosa"
+                />
+                <Input
+                  label="Price (₹)"
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                  placeholder="e.g., 150"
+                />
+                
+                <Text style={styles.chipLabel}>Category</Text>
+                <View style={styles.chipContainer}>
+                  {categories.map((c: any) => (
+                    <TouchableOpacity
+                      key={c.id}
+                      activeOpacity={0.7}
+                      style={[styles.chip, categoryId === c.id && styles.chipActive]}
+                      onPress={() => setCategoryId(c.id)}
+                    >
+                      <Text style={[styles.chipText, categoryId === c.id && styles.chipTextActive]}>{c.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-              <Text style={styles.chipLabel}>Section</Text>
-              <View style={styles.chipContainer}>
-                {sections.map((s: any) => (
-                  <TouchableOpacity
-                    key={s.id}
-                    activeOpacity={0.7}
-                    style={[styles.chip, sectionId === s.id && styles.chipActive]}
-                    onPress={() => setSectionId(s.id)}
-                  >
-                    <Text style={[styles.chipText, sectionId === s.id && styles.chipTextActive]}>{s.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                <Text style={styles.chipLabel}>Section</Text>
+                <View style={styles.chipContainer}>
+                  {sections.map((s: any) => (
+                    <TouchableOpacity
+                      key={s.id}
+                      activeOpacity={0.7}
+                      style={[styles.chip, sectionId === s.id && styles.chipActive]}
+                      onPress={() => setSectionId(s.id)}
+                    >
+                      <Text style={[styles.chipText, sectionId === s.id && styles.chipTextActive]}>{s.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-              <View style={styles.modalActions}>
-                <Button title="Cancel" variant="outline" onPress={closeModal} style={{ flex: 1 }} />
-                <Button title={isEditing ? "Update" : "Create"} onPress={handleCreateOrUpdate} style={{ flex: 1 }} />
+                <View style={styles.modalActions}>
+                  <Button title="Cancel" variant="outline" onPress={closeModal} style={{ flex: 1 }} />
+                  <Button title={isEditing ? "Update" : "Create"} onPress={handleCreateOrUpdate} style={{ flex: 1 }} />
+                </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

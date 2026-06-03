@@ -11,16 +11,22 @@ import { toast } from "../utils/toast";
 export default function KitchenScreen({ navigation }: any) {
 
   const role = useAuthStore((s) => s.user?.role);
-  const allowed = ["SUPER_ADMIN", "ADMIN", "CHEF"].includes(role);
+  const allowed = role ? ["SUPER_ADMIN", "ADMIN", "CHEF"].includes(role) : false;
 
   const { data, isLoading, error, refetch } = useOrders(undefined, { enabled: true });
   const updateStatus = useUpdateOrderStatus();
   const updateItem = useUpdateItemStatus();
   const removeItem = useRemoveOrderItem();
   const [refreshing, setRefreshing] = useState(false);
-  const orders = React.useMemo(() => data?.data ?? [], [data?.data]);
+  
+  const orders = React.useMemo(() => {
+    if (Array.isArray(data?.data)) return data.data;
+    if (data?.data && Array.isArray((data.data as any).orders)) return (data.data as any).orders;
+    return [];
+  }, [data?.data]);
+
   // Exclude cancelled orders from the list
-  const visibleOrders = React.useMemo(() => orders.filter((o) => o.status !== "CANCELLED"), [orders]);
+  const visibleOrders = React.useMemo(() => orders.filter((o: Order) => o.status !== "CANCELLED"), [orders]);
   // Sort orders by creation time (ascending) so the earliest order appears first
   const sortedOrders = React.useMemo(() => {
     return [...visibleOrders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -54,7 +60,7 @@ export default function KitchenScreen({ navigation }: any) {
   const hasShownError = React.useRef(false);
   React.useEffect(() => {
     if (error && !hasShownError.current) {
-      toast.show({ type: "error", text1: "Failed to load orders", text2: error?.message ?? "Error" });
+      toast.error("Failed to load orders", error?.message ?? "Error");
       hasShownError.current = true;
     }
     if (!error) {

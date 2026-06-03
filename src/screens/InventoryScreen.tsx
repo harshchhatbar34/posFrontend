@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, RefreshControl, Alert, Modal, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, FlatList, StyleSheet, RefreshControl, Alert, Modal, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, Button, Badge, LoadingSpinner, Input } from "../components/ui";
 import { useInventory, useAddStock, useRecordUsage, useCreateInventoryItem } from "../hooks/useApi";
@@ -22,6 +22,7 @@ export default function InventoryScreen() {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [addStockModalVisible, setAddStockModalVisible] = useState(false);
   const [stockQuantity, setStockQuantity] = useState("");
+  const [stockError, setStockError] = useState("");
 
   // Create Item Modal State
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -29,38 +30,76 @@ export default function InventoryScreen() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemPrice, setNewItemPrice] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("");
+  const [createItemError, setCreateItemError] = useState("");
 
   if (isLoading) return <LoadingSpinner />;
 
   const handleAddStock = (item: InventoryItem) => {
     setSelectedItem(item);
     setStockQuantity("");
+    setStockError("");
     setAddStockModalVisible(true);
   };
 
   const submitAddStock = () => {
-    const qty = Number(stockQuantity);
-    if (selectedItem && qty > 0) {
-      addStock.mutate({ id: selectedItem.id, data: { quantity: qty, type: "PURCHASE", cost: 0, notes: "Added from app" } });
+    if (!stockQuantity.trim()) {
+      setStockError("Quantity is required");
+      return;
     }
-    setAddStockModalVisible(false);
+    const qty = Number(stockQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      setStockError("Please enter a valid positive number");
+      return;
+    }
+    if (selectedItem) {
+      addStock.mutate(
+        { id: selectedItem.id, data: { quantityAdded: qty, note: "Added from app" } },
+        {
+          onSuccess: () => {
+            setAddStockModalVisible(false);
+            setStockError("");
+            refetch();
+          },
+          onError: (err: any) => {
+            setStockError(err?.response?.data?.error || "Failed to add stock");
+          },
+        }
+      );
+    }
   };
 
   const handleCreateItem = () => {
-    if (newItemName.trim() && newItemUnit.trim()) {
-      createItem.mutate({
+    if (!newItemName.trim()) {
+      setCreateItemError("Item name is required");
+      return;
+    }
+    if (!newItemUnit) {
+      setCreateItemError("Please select a unit");
+      return;
+    }
+    createItem.mutate(
+      {
         name: newItemName.trim(),
         unit: newItemUnit,
         pricePerUnit: Number(newItemPrice) || 0,
         quantity: Number(newItemQuantity) || 0,
         minStock: 10,
-      });
-      setCreateModalVisible(false);
-      setNewItemName("");
-      setNewItemUnit("");
-      setNewItemPrice("");
-      setNewItemQuantity("");
-    }
+      },
+      {
+        onSuccess: () => {
+          setCreateModalVisible(false);
+          setNewItemName("");
+          setNewItemUnit("");
+          setNewItemPrice("");
+          setNewItemQuantity("");
+          setCreateItemError("");
+          refetch();
+        },
+        onError: (err: any) => {
+          setCreateItemError(err?.response?.data?.error || "Failed to create item");
+        },
+      }
+    );
   };
 
   const handleRecordUsage = (item: InventoryItem) => {
@@ -108,83 +147,108 @@ export default function InventoryScreen() {
       />
 
       {isAdmin && (
-        <TouchableOpacity style={styles.fab} activeOpacity={0.8} onPress={() => setCreateModalVisible(true)}>
+        <TouchableOpacity
+          style={styles.fab}
+          activeOpacity={0.8}
+          onPress={() => {
+            setCreateItemError("");
+            setCreateModalVisible(true);
+          }}
+        >
           <Ionicons name="add" size={32} color={COLORS.white} />
         </TouchableOpacity>
       )}
 
       {/* Add Stock Modal */}
-      <Modal visible={addStockModalVisible} transparent animationType="fade">
+      <Modal visible={addStockModalVisible} transparent animationType="fade" onRequestClose={() => setAddStockModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Stock to {selectedItem?.name}</Text>
-            <Input
-              label={`Quantity (${selectedItem?.unit})`}
-              value={stockQuantity}
-              onChangeText={setStockQuantity}
-              keyboardType="numeric"
-              placeholder="Enter quantity"
-            />
-            <View style={styles.modalActions}>
-              <Button title="Cancel" variant="outline" onPress={() => setAddStockModalVisible(false)} style={{ flex: 1 }} />
-              <Button title="Add" onPress={submitAddStock} style={{ flex: 1 }} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%", maxWidth: 340 }}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Stock to {selectedItem?.name}</Text>
+              <Input
+                label={`Quantity (${selectedItem?.unit})`}
+                value={stockQuantity}
+                onChangeText={(text) => {
+                  setStockQuantity(text);
+                  setStockError("");
+                }}
+                keyboardType="numeric"
+                placeholder="Enter quantity"
+                error={stockError}
+              />
+              <View style={styles.modalActions}>
+                <Button title="Cancel" variant="outline" onPress={() => setAddStockModalVisible(false)} style={{ flex: 1 }} />
+                <Button title="Add" onPress={submitAddStock} style={{ flex: 1 }} />
+              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
       {/* Create New Item Modal */}
-      <Modal visible={createModalVisible} transparent animationType="fade">
+      <Modal visible={createModalVisible} transparent animationType="fade" onRequestClose={() => setCreateModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Create Inventory Item</Text>
-              <Input
-                label="Item Name"
-                value={newItemName}
-                onChangeText={setNewItemName}
-                placeholder="e.g., Rice"
-              />
-              <Input
-                label="Price Per Unit (₹)"
-                value={newItemPrice}
-                onChangeText={setNewItemPrice}
-                keyboardType="numeric"
-                placeholder="e.g., 50"
-              />
-              <Input
-                label="Initial Quantity"
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-                keyboardType="numeric"
-                placeholder="e.g., 100"
-              />
-              <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 6, marginTop: SPACING.xs, fontWeight: "500" }}>Unit</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginBottom: SPACING.md }}>
-                {["KG", "GRAM", "LITER", "ML", "PIECE", "PACKET", "BOX"].map((u) => (
-                  <TouchableOpacity
-                    key={u}
-                    activeOpacity={0.7}
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 14,
-                      borderRadius: BORDER_RADIUS.md,
-                      backgroundColor: newItemUnit === u ? COLORS.primary : COLORS.primary + "10",
-                      borderWidth: 1,
-                      borderColor: newItemUnit === u ? COLORS.primary : "transparent",
-                    }}
-                    onPress={() => setNewItemUnit(u)}
-                  >
-                    <Text style={{ color: newItemUnit === u ? COLORS.white : COLORS.primary, fontWeight: "600", fontSize: 13 }}>{u}</Text>
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%", maxWidth: 400 }}
+          >
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Create Inventory Item</Text>
+                <Input
+                  label="Item Name"
+                  value={newItemName}
+                  onChangeText={(text) => {
+                    setNewItemName(text);
+                    setCreateItemError("");
+                  }}
+                  placeholder="e.g., Rice"
+                  error={createItemError}
+                />
+                <Input
+                  label="Price Per Unit (₹)"
+                  value={newItemPrice}
+                  onChangeText={setNewItemPrice}
+                  keyboardType="numeric"
+                  placeholder="e.g., 50"
+                />
+                <Input
+                  label="Initial Quantity"
+                  value={newItemQuantity}
+                  onChangeText={setNewItemQuantity}
+                  keyboardType="numeric"
+                  placeholder="e.g., 100"
+                />
+                <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 6, marginTop: SPACING.xs, fontWeight: "500" }}>Unit</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginBottom: SPACING.md }}>
+                  {["KG", "GRAM", "LITER", "ML", "PIECE", "PACKET", "BOX"].map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      activeOpacity={0.7}
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: BORDER_RADIUS.md,
+                        backgroundColor: newItemUnit === u ? COLORS.primary : COLORS.primary + "10",
+                        borderWidth: 1,
+                        borderColor: newItemUnit === u ? COLORS.primary : "transparent",
+                      }}
+                      onPress={() => setNewItemUnit(u)}
+                    >
+                      <Text style={{ color: newItemUnit === u ? COLORS.white : COLORS.primary, fontWeight: "600", fontSize: 13 }}>{u}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.modalActions}>
+                  <Button title="Cancel" variant="outline" onPress={() => setCreateModalVisible(false)} style={{ flex: 1 }} />
+                  <Button title="Create" onPress={handleCreateItem} style={{ flex: 1 }} />
+                </View>
               </View>
-              <View style={styles.modalActions}>
-                <Button title="Cancel" variant="outline" onPress={() => setCreateModalVisible(false)} style={{ flex: 1 }} />
-                <Button title="Create" onPress={handleCreateItem} style={{ flex: 1 }} />
-              </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

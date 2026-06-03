@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, LoadingSpinner, EmptyState, Button, Input } from "../components/ui";
 import { useSections, useAddSection } from "../hooks/useApi";
@@ -79,27 +79,32 @@ export default function SectionsScreen({ navigation }: any) {
         </TouchableOpacity>
       )}
 
-      <Modal visible={modalVisible} transparent animationType="fade">
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Section</Text>
-            <Input
-              label="Section Name"
-              value={sectionName}
-              onChangeText={setSectionName}
-              placeholder="e.g., Main Hall"
-            />
-            <Input
-              label="Description (Optional)"
-              value={sectionDesc}
-              onChangeText={setSectionDesc}
-              placeholder="e.g., Ground floor dining area"
-            />
-            <View style={styles.modalActions}>
-              <Button title="Cancel" variant="outline" onPress={() => setModalVisible(false)} style={{ flex: 1 }} />
-              <Button title="Create" onPress={handleCreateSection} style={{ flex: 1 }} isLoading={addSection.isPending} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%", maxWidth: 340 }}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Section</Text>
+              <Input
+                label="Section Name"
+                value={sectionName}
+                onChangeText={setSectionName}
+                placeholder="e.g., Main Hall"
+              />
+              <Input
+                label="Description (Optional)"
+                value={sectionDesc}
+                onChangeText={setSectionDesc}
+                placeholder="e.g., Ground floor dining area"
+              />
+              <View style={styles.modalActions}>
+                <Button title="Cancel" variant="outline" onPress={() => setModalVisible(false)} style={{ flex: 1 }} />
+                <Button title="Create" onPress={handleCreateSection} style={{ flex: 1 }} loading={addSection.isPending} />
+              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

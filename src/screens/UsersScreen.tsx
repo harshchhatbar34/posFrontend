@@ -88,7 +88,7 @@ export default function UsersScreen() {
 
     const doAction = () => {
       updateUserMutation.mutate(
-        { id: user.id, data: { action: shouldBlock ? "block" : "unlock" } },
+        { id: user.id, data: { isActive: !shouldBlock } },
         {
           onSuccess: () => {
             toast.success(`User ${actionLabel}ed successfully!`);
