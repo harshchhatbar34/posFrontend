@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView, Platform, useWindowDimensions } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { StatusBadge, LoadingSpinner, EmptyState, Button, Input } from "../components/ui";
 import { useTables, useCreateTable } from "../hooks/useApi";
@@ -10,11 +10,13 @@ import { Table } from "../types";
 import { useIsFocused } from "@react-navigation/native";
 
 export default function TablesScreen({ navigation, route }: any) {
+  const { width } = useWindowDimensions();
+  const isTablet = width > 600;
   const isFocused = useIsFocused();
   const { sectionId, sectionName } = route.params;
   const { data, isLoading, refetch } = useTables({ sectionId }, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
   const createTable = useCreateTable();
-  const isAdmin = useAuthStore((s) => s.isAdmin());
+  const isManager = useAuthStore((s) => s.isManager());
   
   const tables = (Array.isArray(data?.data) ? [...data.data] : []).sort(
     (a, b) => a.tableNumber - b.tableNumber
@@ -51,9 +53,10 @@ export default function TablesScreen({ navigation, route }: any) {
   return (
     <View style={styles.container}>
       <FlatList
+        key={isTablet ? "tablet-tables" : "mobile-tables"}
         data={tables}
-        numColumns={2}
-        contentContainerStyle={{ padding: SPACING.md }}
+        numColumns={isTablet ? 4 : 2}
+        contentContainerStyle={{ padding: SPACING.md, maxWidth: 850, width: "100%", alignSelf: "center" }}
         columnWrapperStyle={{ gap: SPACING.sm }}
         ItemSeparatorComponent={() => <View style={{ height: SPACING.sm }} />}
         keyExtractor={(item) => item.id}
@@ -70,7 +73,7 @@ export default function TablesScreen({ navigation, route }: any) {
         )}
       />
 
-      {isAdmin && (
+      {isManager && (
         <TouchableOpacity style={styles.fab} activeOpacity={0.8} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={32} color={COLORS.white} />
         </TouchableOpacity>
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: SPACING.lg },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.lg },
   modalContent: { backgroundColor: COLORS.surface, padding: SPACING.lg, borderRadius: BORDER_RADIUS.lg },
   modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.md },
   modalActions: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.lg },

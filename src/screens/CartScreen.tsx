@@ -9,6 +9,8 @@ import { Ionicons } from "@expo/vector-icons";
 export default function CartScreen({ navigation }: any) {
   const { items, tableId, notes, updateQuantity, removeItem, setNotes, getTotal, clearCart } = useCartStore();
   const createOrder = useCreateOrder();
+  const [customerName, setCustomerName] = React.useState("");
+  const [customerNumber, setCustomerNumber] = React.useState("");
 
   const handlePlaceOrder = () => {
     if (!tableId || items.length === 0) return;
@@ -17,6 +19,8 @@ export default function CartScreen({ navigation }: any) {
         tableId,
         items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
         notes: notes || undefined,
+        customerName: customerName.trim() || undefined,
+        customerNumber: customerNumber.trim() || undefined,
       },
       { onSuccess: () => navigation.navigate("Dashboard") }
     );
@@ -27,7 +31,7 @@ export default function CartScreen({ navigation }: any) {
       <FlatList
         data={items}
         keyExtractor={(item) => item.product.id}
-        contentContainerStyle={{ padding: SPACING.md }}
+        contentContainerStyle={{ padding: SPACING.md, maxWidth: 700, width: "100%", alignSelf: "center" }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="cart-outline" size={64} color={COLORS.textMuted} />
@@ -60,6 +64,20 @@ export default function CartScreen({ navigation }: any) {
         ListFooterComponent={
           items.length > 0 ? (
             <View style={{ marginTop: SPACING.md }}>
+              <Input
+                label="Customer Name"
+                value={customerName}
+                onChangeText={setCustomerName}
+                placeholder="Enter customer name..."
+              />
+              <Input
+                label="Customer Phone Number"
+                value={customerNumber}
+                onChangeText={setCustomerNumber}
+                placeholder="Enter 10-digit phone number..."
+                keyboardType="numeric"
+                maxLength={10}
+              />
               <Input label="Order Notes" value={notes} onChangeText={setNotes} placeholder="Special instructions..." multiline />
             </View>
           ) : null
@@ -91,7 +109,7 @@ const styles = StyleSheet.create({
   qtyBtn: { padding: 8 },
   qtyText: { fontSize: 15, fontWeight: "700", color: COLORS.text, minWidth: 24, textAlign: "center" },
   itemTotal: { fontSize: 15, fontWeight: "700", color: COLORS.success, minWidth: 60, textAlign: "right" },
-  footer: { padding: SPACING.lg, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border },
+  footer: { padding: SPACING.lg, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border, maxWidth: 700, width: "100%", alignSelf: "center" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.md },
   totalLabel: { fontSize: 16, color: COLORS.textSecondary },
   totalAmount: { fontSize: 22, fontWeight: "800", color: COLORS.success },

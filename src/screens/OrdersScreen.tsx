@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, RefreshControl, TouchableOpacity, Mod
 import { toast } from "../utils/toast";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, StatusBadge, Button, LoadingSpinner } from "../components/ui";
+import { Ionicons } from "@expo/vector-icons";
 import { useOrders, useUpdateOrderStatus, useRecordPayment } from "../hooks/useApi";
 import { Order } from "../types";
 
@@ -53,7 +54,7 @@ export default function OrdersScreen({ navigation }: any) {
   };
 
   const handleCancel = (order: Order) => {
-    if (order.status !== "PENDING") return;
+    if (order.status !== "PENDING" && order.status !== "COOKED") return;
 
     const doCancel = () => {
       toast.info("Cancelling order...");
@@ -90,7 +91,7 @@ export default function OrdersScreen({ navigation }: any) {
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: SPACING.md }}
+        contentContainerStyle={{ padding: SPACING.md, maxWidth: 800, width: "100%", alignSelf: "center" }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await refetch(); setRefreshing(false); }} tintColor={COLORS.primary} />}
         renderItem={({ item: order }: { item: Order }) => (
           <Card style={styles.card}>
@@ -100,11 +101,32 @@ export default function OrdersScreen({ navigation }: any) {
                   <Text style={styles.table}>Table #{order.table?.tableNumber} • {order.table?.section?.name}</Text>
                   <Text style={styles.time}>{new Date(order.createdAt).toLocaleString()}</Text>
                   <Text style={styles.takenBy}>By: {order.takenBy?.name}</Text>
+                  {order.customerName ? (
+                    <Text style={styles.customerText}>
+                      Cust: {order.customerName}{order.customerNumber ? ` (${order.customerNumber})` : ""}
+                    </Text>
+                  ) : order.customerNumber ? (
+                    <Text style={styles.customerText}>Phone: {order.customerNumber}</Text>
+                  ) : null}
+                  {order.notes ? (
+                    <View style={styles.notesBlock}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={12} color={COLORS.secondaryDark} style={{ marginRight: 4, marginTop: 1 }} />
+                      <Text style={styles.notesText} numberOfLines={1}>
+                        Note: "{order.notes}"
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                  <StatusBadge status={order.status} />
+                  {order.paymentStatus === "PAID" ? (
+                    <StatusBadge status="PAID" />
+                  ) : (
+                    <>
+                      <StatusBadge status={order.status} />
+                      <StatusBadge status={order.paymentStatus} />
+                    </>
+                  )}
                   <Text style={styles.amount}>₹{order.totalAmount}</Text>
-                  <StatusBadge status={order.paymentStatus} />
                 </View>
               </View>
               {/* Items */}
@@ -116,13 +138,13 @@ export default function OrdersScreen({ navigation }: any) {
 
             {/* Actions (Separated so clicking actions does not trigger page navigation) */}
             <View style={styles.actions}>
-              {order.status === "COMPLETED" && (
-                <Button title="Mark Served" onPress={() => handleServe(order.id)} size="sm" variant="secondary" />
+              {order.status === "COOKED" && (
+                <Button title="Serve" onPress={() => handleServe(order.id)} size="sm" variant="secondary" />
               )}
               {order.status === "SERVED" && order.paymentStatus === "UNPAID" && (
-                <Button title="Mark Paid" onPress={() => handlePayment(order.id)} size="sm" />
+                <Button title="Pay" onPress={() => handlePayment(order.id)} size="sm" />
               )}
-              {order.status === "PENDING" && (
+              {(order.status === "PENDING" || order.status === "COOKED") && (
                 <Button title="Cancel" onPress={() => handleCancel(order)} size="sm" variant="danger" />
               )}
             </View>
@@ -181,6 +203,23 @@ const styles = StyleSheet.create({
   table: { fontSize: 15, fontWeight: "700", color: COLORS.text },
   time: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   takenBy: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  customerText: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2, fontWeight: "600" },
+  notesBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.warning + "12",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: 4,
+  },
+  notesText: {
+    fontSize: 11,
+    color: COLORS.secondaryDark,
+    fontWeight: "600",
+    fontStyle: "italic",
+    flex: 1,
+  },
   amount: { fontSize: 18, fontWeight: "800", color: COLORS.success, marginVertical: 4 },
   item: { fontSize: 13, color: COLORS.textSecondary, marginLeft: SPACING.sm },
   more: { fontSize: 12, color: COLORS.primary, marginLeft: SPACING.sm, marginTop: 2 },

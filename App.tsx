@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AppNavigation from "./src/navigation/AppNavigation";
 import { useAuthStore } from "./src/store/auth-store";
 import { LoadingSpinner } from "./src/components/ui";
+import { Platform } from "react-native";
+import { COLORS } from "./src/constants";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,14 +21,16 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const isLoading = useAuthStore((s) => s.isLoading);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const loadStoredAuth = useAuthStore((s) => s.loadStoredAuth);
 
   useEffect(() => {
     loadStoredAuth();
+    if (Platform.OS === "web") {
+      document.body.style.backgroundColor = COLORS.background;
+    }
   }, []);
 
-  if (isLoading) return <LoadingSpinner text="Starting Jay Goga POS..." />;
+  if (isLoading) return <LoadingSpinner text="Starting Jay Goga Cafe..." />;
 
   return <AppNavigation />;
 }
@@ -36,7 +40,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <AppContent />
         </QueryClientProvider>
       </SafeAreaProvider>

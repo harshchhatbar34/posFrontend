@@ -1,7 +1,7 @@
 // ============ TypeScript Types ============
 
-export type Role = "SUPER_ADMIN" | "ADMIN" | "CHEF" | "HELPER";
-export type OrderStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "SERVED" | "CANCELLED";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "CHEF" | "HELPER";
+export type OrderStatus = "PENDING" | "IN_PROGRESS" | "COOKED" | "SERVED" | "CANCELLED";
 export type OrderItemStatus = "PENDING" | "UNDER_COOK" | "COOKED";
 export type PaymentMethod = "CASH" | "ONLINE";
 export type PaymentStatus = "UNPAID" | "PAID";
@@ -38,7 +38,9 @@ export interface Table {
 export interface Category {
   id: string;
   name: string;
+  sectionId: string;
   isActive: boolean;
+  section?: { id: string; name: string; isActive?: boolean };
   _count?: { products: number };
 }
 
@@ -65,7 +67,10 @@ export interface Order {
   paymentMethod?: PaymentMethod;
   paymentStatus: PaymentStatus;
   paidAt?: string;
+  cookedAt?: string;
   notes?: string;
+  customerName?: string;
+  customerNumber?: string;
   createdAt: string;
   table?: Table & { section?: { id: string; name: string } };
   takenBy?: { id: string; name: string };

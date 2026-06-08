@@ -92,11 +92,11 @@ export const categoriesApi = {
   getById: (id: string) =>
     api.get<ApiResponse<Category>>(`/categories/${id}`),
 
-  create: (data: { name: string }) =>
+  create: (data: { name: string; sectionId: string }) =>
     api.post<ApiResponse<Category>>("/categories", data),
 
-  update: (id: string, data: Partial<Category>) =>
-    api.put<ApiResponse<Category>>(`/categories/${id}`, data),
+  update: (id: string, data: { name?: string; sectionId?: string; isActive?: boolean }) =>
+    api.patch<ApiResponse<Category>>(`/categories/${id}`, data),
 
   delete: (id: string) => api.delete(`/categories/${id}`),
 };
@@ -113,7 +113,7 @@ export const productsApi = {
     api.post<ApiResponse<Product>>("/products", data),
 
   update: (id: string, data: Partial<Product>) =>
-    api.put<ApiResponse<Product>>(`/products/${id}`, data),
+    api.patch<ApiResponse<Product>>(`/products/${id}`, data),
 
   delete: (id: string) => api.delete(`/products/${id}`),
 };
@@ -129,6 +129,8 @@ export const ordersApi = {
     tableId: string;
     items: Array<{ productId: string; quantity: number }>;
     notes?: string;
+    customerName?: string;
+    customerNumber?: string;
   }) => api.post<ApiResponse<Order>>("/orders", data),
 
   updateStatus: (id: string, status: string) =>
@@ -182,6 +184,12 @@ export const inventoryApi = {
 
   recordUsage: (id: string, data: { quantityUsed: number; note?: string }) =>
     api.post<ApiResponse<InventoryItem>>(`/inventory/${id}/usage`, data),
+
+  updateUsageLog: (id: string, logId: string, data: { quantityUsed?: number; note?: string }) =>
+    api.put<ApiResponse<unknown>>(`/inventory/${id}/usage/${logId}`, data),
+
+  deleteUsageLog: (id: string, logId: string) =>
+    api.delete<ApiResponse<unknown>>(`/inventory/${id}/usage/${logId}`),
 };
 
 // ============ Reports API ============

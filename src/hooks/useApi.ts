@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from "../store/auth-store";
 import { useCartStore } from "../store/cart-store";
 import { toast } from "../utils/toast";
+import { InventoryItem } from "../types";
 
 // ============ Auth Hooks ============
 export function useLogin() {
@@ -69,6 +70,18 @@ export function useCreateSection() {
   });
 }
 
+export function useDeleteSection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => sectionsApi.delete(id),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["sections"] });
+      toast.success(res.data?.message || "Section deleted successfully!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to delete section"),
+  });
+}
+
 // ============ Table Hooks ============
 export function useTables(params?: Record<string, string>, options?: { enabled?: boolean; refetchInterval?: number | false }) {
   return useQuery({
@@ -101,9 +114,34 @@ export function useCategories(params?: Record<string, string>, options?: { enabl
 export function useCreateCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string }) => categoriesApi.create(data),
+    mutationFn: (data: { name: string; sectionId: string }) => categoriesApi.create(data as never),
     onSuccess: (res) => { qc.invalidateQueries({ queryKey: ["categories"] }); toast.success(res.data?.message || "Category created!"); },
     onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to create category"),
+  });
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; sectionId?: string; isActive?: boolean } }) =>
+      categoriesApi.update(id, data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(res.data?.message || "Category updated!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to update category"),
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => categoriesApi.delete(id),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(res?.data?.message || "Category deleted successfully!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to delete category"),
   });
 }
 
@@ -162,11 +200,31 @@ export function useOrderDetail(id: string) {
   });
 }
 
+export function useDeleteOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.deleteOrder(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["tables"] });
+      qc.invalidateQueries({ queryKey: ["kitchen"] });
+      toast.success("Order deleted successfully!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to delete order"),
+  });
+}
+
 export function useCreateOrder() {
   const qc = useQueryClient();
   const clearCart = useCartStore((s) => s.clearCart);
   return useMutation({
-    mutationFn: (data: { tableId: string; items: Array<{ productId: string; quantity: number }>; notes?: string }) => ordersApi.create(data),
+    mutationFn: (data: {
+      tableId: string;
+      items: Array<{ productId: string; quantity: number }>;
+      notes?: string;
+      customerName?: string;
+      customerNumber?: string;
+    }) => ordersApi.create(data),
     onSuccess: (res) => {
       clearCart();
       qc.invalidateQueries({ queryKey: ["orders"] });
@@ -216,19 +274,6 @@ export function useRemoveOrderItem() {
       toast.success(res?.data?.message || "Item removed!");
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to remove item"),
-  });
-}
-
-export function useDeleteOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => ordersApi.deleteOrder(id),
-    onSuccess: (res: any) => {
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      qc.invalidateQueries({ queryKey: ["tables"] });
-      toast.success(res?.data?.message || "Order deleted!");
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to delete order"),
   });
 }
 
@@ -311,6 +356,39 @@ export function useRecordUsage() {
     mutationFn: ({ id, data }: { id: string; data: { quantityUsed: number; note?: string } }) => inventoryApi.recordUsage(id, data),
     onSuccess: (res) => { qc.invalidateQueries({ queryKey: ["inventory"] }); toast.success(res.data?.message || "Usage recorded!"); },
     onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to record usage"),
+  });
+}
+
+export function useUpdateInventoryItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InventoryItem> }) => inventoryApi.update(id, data as never),
+    onSuccess: (res) => { qc.invalidateQueries({ queryKey: ["inventory"] }); toast.success(res.data?.message || "Inventory item updated!"); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to update item"),
+  });
+}
+
+export function useUpdateUsageLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, logId, data }: { id: string; logId: string; data: { quantityUsed?: number; note?: string } }) => inventoryApi.updateUsageLog(id, logId, data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success("Usage log updated successfully!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to update usage log"),
+  });
+}
+
+export function useDeleteUsageLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, logId }: { id: string; logId: string }) => inventoryApi.deleteUsageLog(id, logId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success("Usage log deleted and stock restored!");
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to delete usage log"),
   });
 }
 

@@ -7,8 +7,10 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  Platform,
 } from "react-native";
 import { COLORS, BORDER_RADIUS, SPACING } from "../constants";
+import { Ionicons } from "@expo/vector-icons";
 
 // ============ Button Component ============
 interface ButtonProps {
@@ -185,11 +187,10 @@ export function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { color: string; bg: string }> = {
     PENDING: { color: "#FFF", bg: COLORS.statusPending },
     IN_PROGRESS: { color: "#FFF", bg: COLORS.statusInProgress },
-    COMPLETED: { color: "#FFF", bg: COLORS.statusCompleted },
+    COOKED: { color: "#FFF", bg: COLORS.statusCooked },
     SERVED: { color: "#FFF", bg: COLORS.statusServed },
     CANCELLED: { color: "#FFF", bg: COLORS.statusCancelled },
     UNDER_COOK: { color: "#FFF", bg: COLORS.itemUnderCook },
-    COOKED: { color: "#FFF", bg: COLORS.itemCooked },
     PAID: { color: "#FFF", bg: COLORS.success },
     UNPAID: { color: "#FFF", bg: COLORS.danger },
   };
@@ -320,6 +321,8 @@ interface InputProps {
   multiline?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   maxLength?: number;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export function Input({
@@ -333,15 +336,25 @@ export function Input({
   multiline,
   autoCapitalize = "none",
   maxLength,
+  onFocus,
+  onBlur,
 }: InputProps) {
   const RNTextInput = require("react-native").TextInput;
+  const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  const shouldSecure = secureTextEntry && !isPasswordVisible;
 
   return (
     <View style={{ marginBottom: SPACING.md }}>
       {label && (
         <Text
           style={{
-            color: COLORS.textSecondary,
+            color: error
+              ? COLORS.danger
+              : isFocused
+              ? COLORS.primary
+              : COLORS.textSecondary,
             fontSize: 13,
             fontWeight: "600",
             marginBottom: 6,
@@ -351,27 +364,68 @@ export function Input({
           {label}
         </Text>
       )}
-      <RNTextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.textMuted}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        autoCapitalize={autoCapitalize}
-        maxLength={maxLength}
+      <View
         style={{
+          flexDirection: "row",
+          alignItems: "center",
           backgroundColor: COLORS.surface,
           borderWidth: 1,
-          borderColor: error ? COLORS.danger : COLORS.border,
+          borderColor: error
+            ? COLORS.danger
+            : isFocused
+            ? COLORS.primary
+            : COLORS.primary + "50",
           borderRadius: BORDER_RADIUS.md,
-          padding: SPACING.md,
-          color: COLORS.text,
-          fontSize: 15,
-          ...(multiline && { minHeight: 80, textAlignVertical: "top" as const }),
         }}
-      />
+      >
+        <RNTextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textMuted}
+          secureTextEntry={shouldSecure}
+          keyboardType={keyboardType}
+          multiline={multiline}
+          autoCapitalize={autoCapitalize}
+          maxLength={maxLength}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            onBlur?.();
+          }}
+          underlineColorAndroid="transparent"
+          style={{
+            flex: 1,
+            padding: SPACING.md,
+            color: COLORS.text,
+            fontSize: 15,
+            borderWidth: 0,
+            ...Platform.select({
+              web: {
+                outlineStyle: "none",
+              } as any,
+              default: {},
+            }),
+            ...(multiline && { minHeight: 80, textAlignVertical: "top" as const }),
+          }}
+        />
+        {secureTextEntry && (
+          <TouchableOpacity
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            style={{ paddingHorizontal: SPACING.md, justifyContent: "center" }}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={isFocused ? COLORS.primary : COLORS.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
       {error && (
         <Text
           style={{ color: COLORS.danger, fontSize: 12, marginTop: 4 }}

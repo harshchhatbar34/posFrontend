@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, useWindowDimensions } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, Button, LoadingSpinner, Badge } from "../components/ui";
 import { useProducts, useCategories } from "../hooks/useApi";
@@ -9,6 +9,8 @@ import { Product } from "../types";
 import { useIsFocused } from "@react-navigation/native";
 
 export default function ProductListingScreen({ navigation, route }: any) {
+  const { width } = useWindowDimensions();
+  const isTablet = width > 600;
   const isFocused = useIsFocused();
   const { sectionId, sectionName, tableNumber } = route.params;
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
@@ -17,7 +19,10 @@ export default function ProductListingScreen({ navigation, route }: any) {
     ...(selectedCategory ? { categoryId: selectedCategory } : {}),
     isAvailable: "true",
   }, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
-  const { data: categoriesData } = useCategories(undefined, { refetchInterval: isFocused ? 10000 : false, enabled: isFocused });
+  const { data: categoriesData } = useCategories(
+    sectionId ? { sectionId } : undefined, 
+    { refetchInterval: isFocused ? 10000 : false, enabled: isFocused && !!sectionId }
+  );
   const products = (Array.isArray(productsData?.data) ? [...productsData.data] : []).sort((a, b) => a.name.localeCompare(b.name));
   const categories = Array.isArray(categoriesData?.data) ? categoriesData.data : [];
   const { addItem, items, getItemCount, getTotal } = useCartStore();
@@ -31,34 +36,38 @@ export default function ProductListingScreen({ navigation, route }: any) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{sectionName} - Table #{tableNumber}</Text>
-      </View>
+      <View style={{ maxWidth: 900, width: "100%", alignSelf: "center" }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{sectionName} - Table #{tableNumber}</Text>
+        </View>
 
-      {/* Category Filter */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={[{ id: undefined, name: "All" }, ...categories]}
-        contentContainerStyle={{ paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm }}
-        keyExtractor={(item) => item.id || "all"}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.catChip, selectedCategory === item.id && styles.catChipActive]}
-            onPress={() => setSelectedCategory(item.id)}
-          >
-            <Text style={[styles.catText, selectedCategory === item.id && styles.catTextActive]}>
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+        {/* Category Filter */}
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={[{ id: undefined, name: "All" }, ...categories]}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{ paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm }}
+          keyExtractor={(item) => item.id || "all"}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.catChip, selectedCategory === item.id && styles.catChipActive]}
+              onPress={() => setSelectedCategory(item.id)}
+            >
+              <Text style={[styles.catText, selectedCategory === item.id && styles.catTextActive]}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
 
       {/* Product Grid */}
       <FlatList
+        key={isTablet ? "tablet-grid" : "mobile-grid"}
         data={products}
-        numColumns={2}
-        contentContainerStyle={{ padding: SPACING.md }}
+        numColumns={isTablet ? 3 : 2}
+        contentContainerStyle={{ padding: SPACING.md, maxWidth: 900, width: "100%", alignSelf: "center" }}
         columnWrapperStyle={{ gap: SPACING.sm }}
         ItemSeparatorComponent={() => <View style={{ height: SPACING.sm }} />}
         keyExtractor={(item) => item.id}
@@ -116,7 +125,7 @@ const styles = StyleSheet.create({
   productCategory: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   qtyBadge: { position: "absolute", top: -6, right: -6, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, justifyContent: "center", alignItems: "center" },
   qtyText: { color: COLORS.white, fontSize: 12, fontWeight: "800" },
-  cartBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.primary, padding: SPACING.md, paddingHorizontal: SPACING.lg, marginHorizontal: SPACING.md, marginBottom: SPACING.md, borderRadius: BORDER_RADIUS.lg },
+  cartBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.primary, padding: SPACING.md, paddingHorizontal: SPACING.lg, marginHorizontal: SPACING.md, marginBottom: SPACING.md, borderRadius: BORDER_RADIUS.lg, maxWidth: 900, width: "90%", alignSelf: "center" },
   cartInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
   cartCount: { color: COLORS.white, fontSize: 15, fontWeight: "600" },
   cartTotal: { color: COLORS.white, fontSize: 18, fontWeight: "800" },

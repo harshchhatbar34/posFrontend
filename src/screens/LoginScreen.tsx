@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Button, Input } from "../components/ui";
@@ -89,10 +90,12 @@ export default function LoginScreen() {
       >
         {/* Logo Area */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>🏪</Text>
-          </View>
-          <Text style={styles.appName}>Jay Goga POS</Text>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>Jay Goga Cafe</Text>
           <Text style={styles.subtitle}>Shop Management System</Text>
         </View>
 
@@ -259,17 +262,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: SPACING.xl,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary + "20",
-    justifyContent: "center",
-    alignItems: "center",
+  logoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: BORDER_RADIUS.md,
     marginBottom: SPACING.md,
-  },
-  logoText: {
-    fontSize: 36,
   },
   appName: {
     fontSize: 28,
@@ -288,6 +285,9 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
+    width: "100%",
+    maxWidth: 450,
+    alignSelf: "center",
   },
   welcomeText: {
     fontSize: 22,

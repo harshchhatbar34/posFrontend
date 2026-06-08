@@ -14,6 +14,7 @@ export default function ReportsScreen() {
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ flexGrow: 1, maxWidth: 800, width: "100%", alignSelf: "center" }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await refetch(); setRefreshing(false); }} tintColor={COLORS.primary} />}
     >
       {/* Total Sales */}

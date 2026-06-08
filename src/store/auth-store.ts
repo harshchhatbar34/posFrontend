@@ -34,6 +34,7 @@ interface AuthState {
   loadStoredAuth: () => Promise<void>;
   hasRole: (...roles: Role[]) => boolean;
   isAdmin: () => boolean;
+  isManager: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -115,5 +116,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAdmin: () => {
     const user = get().user;
     return user ? ["SUPER_ADMIN", "ADMIN"].includes(user.role) : false;
+  },
+
+  isManager: () => {
+    const user = get().user;
+    return user ? ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(user.role) : false;
   },
 }));

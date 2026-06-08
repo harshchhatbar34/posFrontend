@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, Badge, LoadingSpinner, Button, Input } from "../components/ui";
@@ -21,6 +22,8 @@ import { User, Role } from "../types";
 
 export default function UsersScreen() {
   const currentUser = useAuthStore((s) => s.user);
+  const { width } = useWindowDimensions();
+  const isTablet = width > 600;
   const { data, isLoading, refetch } = useUsers();
   const users = Array.isArray(data?.data) ? data.data : [];
   
@@ -37,6 +40,8 @@ export default function UsersScreen() {
 
   // Enforce pre-selections based on logged-in role
   const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+  const isAdmin = currentUser?.role === "ADMIN";
+  const isManager = currentUser?.role === "MANAGER";
   const defaultRegisterRole: Role = isSuperAdmin ? "ADMIN" : "HELPER";
 
   React.useEffect(() => {
@@ -53,6 +58,7 @@ export default function UsersScreen() {
   const roleColor: Record<string, string> = {
     SUPER_ADMIN: COLORS.danger,
     ADMIN: COLORS.primary,
+    MANAGER: "#3B82F6",
     CHEF: COLORS.warning,
     HELPER: COLORS.success,
   };
@@ -141,21 +147,25 @@ export default function UsersScreen() {
     <View style={styles.container}>
       {/* Workspace Header Info Banner */}
       <View style={styles.banner}>
-        <Text style={styles.bannerTitle}>
-          {isSuperAdmin ? "👑 Super Admin Dashboard" : "🛡️ Admin Operations"}
-        </Text>
-        <Text style={styles.bannerSubtitle}>
-          {isSuperAdmin
-            ? "You are authorized to manage Admin accounts only. Newly created accounts will receive a secure welcome setup link."
-            : "You are authorized to manage Chef and Helper accounts only. Newly created accounts will receive a secure welcome setup link."}
-        </Text>
+        <View style={{ maxWidth: 800, width: "100%", alignSelf: "center" }}>
+          <Text style={styles.bannerTitle}>
+            {isSuperAdmin ? "👑 Super Admin Dashboard" : isManager ? "🔑 Manager View" : "🛡️ Admin Operations"}
+          </Text>
+          <Text style={styles.bannerSubtitle}>
+            {isSuperAdmin
+              ? "You are authorized to manage Admin accounts only. Newly created accounts will receive a secure welcome setup link."
+              : isManager
+              ? "You can view, create and manage Chef and Helper accounts. Contact an Admin to manage higher level accounts."
+              : "You are authorized to manage Manager, Chef and Helper accounts only. Newly created accounts will receive a secure welcome setup link."}
+          </Text>
+        </View>
       </View>
 
       {/* Main List */}
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: SPACING.md, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: SPACING.md, paddingBottom: 100, maxWidth: 800, width: "100%", alignSelf: "center" }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -217,8 +227,8 @@ export default function UsersScreen() {
                 </View>
               </View>
 
-              {/* Action Buttons for non-self users */}
-              {!isCurrentUser && (
+              {/* Action Buttons for non-self users — hidden for Managers on higher level users */}
+              {!isCurrentUser && (isAdmin || isSuperAdmin || (isManager && (item.role === "CHEF" || item.role === "HELPER"))) && (
                 <View style={styles.actionRow}>
                   {isUserActive ? (
                     <TouchableOpacity
@@ -249,7 +259,7 @@ export default function UsersScreen() {
         }}
       />
 
-      {(isSuperAdmin || currentUser?.role === "ADMIN") && (
+      {(isSuperAdmin || isAdmin || isManager) && (
         <>
           {/* Floating Add User Action Button */}
           <TouchableOpacity
@@ -262,17 +272,17 @@ export default function UsersScreen() {
         </>
       )}
 
-      {(isSuperAdmin || currentUser?.role === "ADMIN") && (
+      {(isSuperAdmin || isAdmin || isManager) && (
         <Modal
           animationType="slide"
           transparent={true}
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View style={[styles.modalOverlay, isTablet && styles.modalOverlayTablet]}>
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={styles.modalContent}
+              style={[styles.modalContent, isTablet && styles.modalContentTablet]}
             >
               <ScrollView contentContainerStyle={styles.modalScroll}>
                 <View style={styles.modalHeader}>
@@ -317,6 +327,25 @@ export default function UsersScreen() {
                       </View>
                     ) : (
                       <View style={styles.roleToggles}>
+                        {isAdmin && (
+                          <TouchableOpacity
+                            style={[
+                              styles.roleToggleBtn,
+                              role === "MANAGER" && styles.roleToggleBtnActive,
+                            ]}
+                            onPress={() => setRole("MANAGER")}
+                          >
+                            <Text
+                              style={[
+                                styles.roleToggleText,
+                                role === "MANAGER" && styles.roleToggleTextActive,
+                              ]}
+                            >
+                              Manager
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+
                         <TouchableOpacity
                           style={[
                             styles.roleToggleBtn,
@@ -509,11 +538,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-end",
   },
+  modalOverlayTablet: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.lg,
+  },
   modalContent: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
     maxHeight: "85%",
+  },
+  modalContentTablet: {
+    width: "100%",
+    maxWidth: 460,
+    borderRadius: BORDER_RADIUS.lg,
+    borderTopLeftRadius: BORDER_RADIUS.lg,
+    borderTopRightRadius: BORDER_RADIUS.lg,
+    maxHeight: "90%",
   },
   modalScroll: {
     padding: SPACING.lg,

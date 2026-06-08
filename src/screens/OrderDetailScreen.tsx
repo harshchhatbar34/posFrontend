@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, FlatList } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, FlatList, useWindowDimensions } from "react-native";
 import { COLORS, SPACING, BORDER_RADIUS } from "../constants";
 import { Card, StatusBadge, LoadingSpinner, EmptyState, Button } from "../components/ui";
 import {
@@ -7,21 +7,26 @@ import {
   useUpdateOrderStatus,
   useAddOrderItems,
   useRemoveOrderItem,
-  useDeleteOrder,
   useProducts,
+  useCategories,
   useRecordPayment,
+  useDeleteOrder,
 } from "../hooks/useApi";
+import { useAuthStore } from "../store/auth-store";
 import { OrderItem, Product } from "../types";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function OrderDetailScreen({ route, navigation }: any) {
   const { orderId } = route.params;
+  const { width } = useWindowDimensions();
+  const isTablet = width > 600;
   const { data, isLoading, refetch } = useOrderDetail(orderId);
   const updateStatus = useUpdateOrderStatus();
   const addItems = useAddOrderItems();
   const removeItem = useRemoveOrderItem();
-  const deleteOrder = useDeleteOrder();
   const recordPayment = useRecordPayment();
+  const deleteOrder = useDeleteOrder();
+  const isAdmin = useAuthStore((s) => s.isAdmin());
 
   const order = data?.data;
 
@@ -31,13 +36,25 @@ export default function OrderDetailScreen({ route, navigation }: any) {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Record<string, number>>({});
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
 
   // Fetch products for the order's section when modal opens
   const sectionId = order?.table?.section?.id || order?.table?.sectionId;
   const { data: productsData } = useProducts(
-    sectionId ? { sectionId, isAvailable: "true" } : undefined,
+    sectionId ? { 
+      sectionId, 
+      ...(selectedCategory ? { categoryId: selectedCategory } : {}), 
+      isAvailable: "true" 
+    } : undefined,
     { enabled: addModalVisible && !!sectionId }
   );
+  
+  const { data: categoriesData } = useCategories(
+    sectionId ? { sectionId } : undefined,
+    { enabled: addModalVisible && !!sectionId }
+  );
+  
+  const categories = Array.isArray(categoriesData?.data) ? categoriesData.data : [];
   const availableProducts = (Array.isArray(productsData?.data) ? [...productsData.data] : []).sort(
     (a: Product, b: Product) => a.name.localeCompare(b.name)
   );
@@ -49,6 +66,7 @@ export default function OrderDetailScreen({ route, navigation }: any) {
   const isCancelled = order.status === "CANCELLED";
   const isPaid = order.paymentStatus === "PAID";
   const canModify = isPending && !isPaid;
+  const canCancel = (order.status === "PENDING" || order.status === "COOKED") && !isPaid;
 
   const handleCancel = () => {
     updateStatus.mutate(
@@ -57,9 +75,19 @@ export default function OrderDetailScreen({ route, navigation }: any) {
     );
   };
 
-  const handleDelete = () => {
+  const handleServe = () => {
+    updateStatus.mutate(
+      { id: order.id, status: "SERVED" },
+      { onSuccess: () => { refetch(); } }
+    );
+  };
+
+  const handleDeleteOrder = () => {
     deleteOrder.mutate(order.id, {
-      onSuccess: () => navigation.goBack(),
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        navigation.navigate("Dashboard");
+      }
     });
   };
 
@@ -122,7 +150,7 @@ export default function OrderDetailScreen({ route, navigation }: any) {
   const totalSelected = Object.values(selectedProducts).reduce((a, b) => a + b, 0);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ maxWidth: 800, width: "100%", alignSelf: "center" }}>
       <Card style={styles.card}>
         {/* Header */}
         <View style={styles.headerRow}>
@@ -132,10 +160,31 @@ export default function OrderDetailScreen({ route, navigation }: any) {
             </Text>
             <Text style={styles.metaText}>{new Date(order.createdAt).toLocaleString()}</Text>
             <Text style={styles.metaText}>By: {order.takenBy?.name}</Text>
+            {order.customerName ? (
+              <Text style={styles.customerText}>
+                Customer: {order.customerName}{order.customerNumber ? ` (${order.customerNumber})` : ""}
+              </Text>
+            ) : order.customerNumber ? (
+              <Text style={styles.customerText}>Customer Phone: {order.customerNumber}</Text>
+            ) : null}
+            {order.notes ? (
+              <View style={styles.notesBlock}>
+                <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.secondaryDark} style={{ marginRight: 6, marginTop: 2 }} />
+                <Text style={styles.notesText}>
+                  Special Instructions: "{order.notes}"
+                </Text>
+              </View>
+            ) : null}
           </View>
           <View style={{ alignItems: "flex-end", gap: 6 }}>
-            <StatusBadge status={order.status} />
-            <StatusBadge status={order.paymentStatus} />
+            {order.paymentStatus === "PAID" ? (
+              <StatusBadge status="PAID" />
+            ) : (
+              <>
+                <StatusBadge status={order.status} />
+                <StatusBadge status={order.paymentStatus} />
+              </>
+            )}
           </View>
         </View>
 
@@ -204,16 +253,59 @@ export default function OrderDetailScreen({ route, navigation }: any) {
             <View style={styles.divider} />
             <Text style={styles.sectionTitle}>Actions</Text>
 
-            {/* Mark Paid Button */}
+            {/* Serve Button */}
+            {order.status === "COOKED" && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleServe} activeOpacity={0.8} disabled={updateStatus.isPending}>
+                <Ionicons name="checkmark-done-circle-outline" size={22} color={COLORS.primary} />
+                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                  <Text style={[styles.actionTitle, { color: COLORS.primary }]}>Serve</Text>
+                  <Text style={styles.actionSub}>Deliver the COOKED dishes to the table</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+
+            {/* Pay Button */}
             {order.status === "SERVED" && (
               <TouchableOpacity style={styles.actionBtn} onPress={() => setPaymentModalVisible(true)} activeOpacity={0.8}>
                 <Ionicons name="card-outline" size={22} color={COLORS.success} />
                 <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                  <Text style={[styles.actionTitle, { color: COLORS.success }]}>Mark Paid</Text>
+                  <Text style={[styles.actionTitle, { color: COLORS.success }]}>Pay</Text>
                   <Text style={styles.actionSub}>Record cash or UPI payment</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
               </TouchableOpacity>
+            )}
+
+            {/* Delete Order Button (Admin only, when order is done) */}
+            {isAdmin && (order.status === "COOKED" || order.status === "SERVED") && !showDeleteConfirm && (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnDanger]}
+                onPress={() => setShowDeleteConfirm(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={22} color={COLORS.danger} />
+                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                  <Text style={[styles.actionTitle, { color: COLORS.danger }]}>Delete Order</Text>
+                  <Text style={styles.actionSub}>Irreversibly delete this order from the system</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {showDeleteConfirm && (
+              <View style={styles.confirmBox}>
+                <Text style={styles.confirmText}>Are you sure you want to permanently delete this order?</Text>
+                <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md }}>
+                  <Button
+                    title="Yes, Delete"
+                    variant="danger"
+                    onPress={handleDeleteOrder}
+                    style={{ flex: 1 }}
+                    loading={deleteOrder.isPending}
+                  />
+                  <Button title="Go Back" variant="outline" onPress={() => setShowDeleteConfirm(false)} style={{ flex: 1 }} />
+                </View>
+              </View>
             )}
 
             {/* Add More Items */}
@@ -229,7 +321,7 @@ export default function OrderDetailScreen({ route, navigation }: any) {
             )}
 
             {/* Cancel Order */}
-            {canModify && !showCancelConfirm && !showDeleteConfirm && (
+            {canCancel && !showCancelConfirm && (
               <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => setShowCancelConfirm(true)} activeOpacity={0.8}>
                 <Ionicons name="close-circle-outline" size={22} color={COLORS.danger} />
                 <View style={{ flex: 1, marginLeft: SPACING.sm }}>
@@ -248,40 +340,39 @@ export default function OrderDetailScreen({ route, navigation }: any) {
                 </View>
               </View>
             )}
-
-            {/* Delete Order */}
-            {!showDeleteConfirm && !showCancelConfirm && (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => setShowDeleteConfirm(true)} activeOpacity={0.8}>
-                <Ionicons name="trash-outline" size={22} color={COLORS.danger} />
-                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                  <Text style={[styles.actionTitle, { color: COLORS.danger }]}>Delete Order</Text>
-                  <Text style={styles.actionSub}>Permanently removes this order and all its items</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {showDeleteConfirm && (
-              <View style={styles.confirmBox}>
-                <Text style={styles.confirmText}>⚠️ Permanently delete this entire order?</Text>
-                <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md }}>
-                  <Button title="Yes, Delete" variant="danger" onPress={handleDelete} style={{ flex: 1 }} loading={deleteOrder.isPending} />
-                  <Button title="Go Back" variant="outline" onPress={() => setShowDeleteConfirm(false)} style={{ flex: 1 }} />
-                </View>
-              </View>
-            )}
           </>
         )}
       </Card>
 
       {/* Add Items Modal */}
-      <Modal visible={addModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={addModalVisible} transparent animationType={isTablet ? "fade" : "slide"}>
+        <View style={[styles.modalOverlay, isTablet && styles.modalOverlayTablet]}>
+          <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.md }}>
               <Text style={styles.modalTitle}>Add Items to Order</Text>
               <TouchableOpacity onPress={() => { setAddModalVisible(false); setSelectedProducts({}); }}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
+            </View>
+
+            {/* Category Filter */}
+            <View style={{ marginBottom: SPACING.sm }}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={[{ id: undefined, name: "All" }, ...categories]}
+                keyExtractor={(item) => item.id || "all"}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.catChip, selectedCategory === item.id && styles.catChipActive]}
+                    onPress={() => setSelectedCategory(item.id)}
+                  >
+                    <Text style={[styles.catText, selectedCategory === item.id && styles.catTextActive]}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
             </View>
 
             <FlatList
@@ -384,6 +475,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: SPACING.sm },
   title: { fontSize: 18, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
   metaText: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 2 },
+  customerText: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginTop: 4 },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.md },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.text, marginBottom: SPACING.md },
   itemBlock: { marginBottom: SPACING.md },
@@ -405,7 +497,20 @@ const styles = StyleSheet.create({
   confirmBox: { backgroundColor: COLORS.danger + "10", borderRadius: BORDER_RADIUS.md, padding: SPACING.md, borderWidth: 1, borderColor: COLORS.danger + "40", marginBottom: SPACING.sm },
   confirmText: { fontSize: 14, color: COLORS.text, fontWeight: "500" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlayTablet: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.lg,
+  },
   modalContent: { backgroundColor: COLORS.surface, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, padding: SPACING.lg, paddingBottom: SPACING.xxl },
+  modalContentTablet: {
+    width: "100%",
+    maxWidth: 480,
+    borderRadius: BORDER_RADIUS.lg,
+    borderTopLeftRadius: BORDER_RADIUS.lg,
+    borderTopRightRadius: BORDER_RADIUS.lg,
+    paddingBottom: SPACING.lg,
+  },
   modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text },
   modalSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACING.lg, textAlign: "center", lineHeight: 18 },
   productRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
@@ -422,4 +527,25 @@ const styles = StyleSheet.create({
   paymentOptionBtn: { flex: 1, alignItems: "center", paddingVertical: SPACING.md, borderWidth: 1.5, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.card },
   paymentOptionEmoji: { fontSize: 32, marginBottom: SPACING.xs },
   paymentOptionText: { fontSize: 14, fontWeight: "700", textAlign: "center" },
+  catChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: BORDER_RADIUS.full, backgroundColor: COLORS.surfaceLight, marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
+  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  catText: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary },
+  catTextActive: { color: COLORS.white },
+  notesBlock: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: COLORS.warning + "12",
+    padding: 10,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: COLORS.warning + "30",
+  },
+  notesText: {
+    fontSize: 13,
+    color: COLORS.secondaryDark,
+    fontWeight: "600",
+    fontStyle: "italic",
+    flex: 1,
+  },
 });

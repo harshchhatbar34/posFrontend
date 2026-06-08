@@ -17,7 +17,7 @@ export const ROLES = {
 export const ORDER_STATUSES = {
   PENDING: "PENDING",
   IN_PROGRESS: "IN_PROGRESS",
-  COMPLETED: "COMPLETED",
+  COOKED: "COOKED",
   SERVED: "SERVED",
   CANCELLED: "CANCELLED",
 } as const;
@@ -37,7 +37,7 @@ export const PAYMENT_METHODS = {
 export const COLORS = {
   primary: "#10B981",       // Emerald Green
   primaryDark: "#059669",
-  primaryLight: "#059669",  // Slightly darker green for contrast
+  primaryLight: "#059669",  // Contrast green for highlights on light theme
   secondary: "#F59E0B",     // Amber
   secondaryDark: "#D97706",
   success: "#10B981",       // Emerald
@@ -45,27 +45,27 @@ export const COLORS = {
   danger: "#EF4444",        // Red
   info: "#3B82F6",          // Blue
   
-  background: "#FFFFFF",    // Pure white background
-  surface: "#F8FAFC",       // Off-white/very light slate surface
-  surfaceLight: "#F1F5F9",  // Light grey highlights
-  card: "#FFFFFF",          // White card
+  background: "#FFFFFF",    // Premium pure white background
+  surface: "#F9FAFB",       // Very soft gray surface
+  surfaceLight: "#F3F4F6",  // Soft gray elevated surface
+  card: "#FFFFFF",          // White card surface
   
-  text: "#0F172A",          // Slate 900 (Dark text)
-  textSecondary: "#475569", // Slate 600
-  textMuted: "#94A3B8",     // Slate 400
+  text: "#111827",          // Crisp slate black
+  textSecondary: "#4B5563", // Slate gray secondary text
+  textMuted: "#9CA3AF",     // Muted gray
   
-  border: "#E2E8F0",        // Slate 200 border
-  divider: "#F1F5F9",       // Slate 100 divider
+  border: "#E5E7EB",        // Clean subtle light border
+  divider: "#F3F4F6",       // Subtle light divider
   
   white: "#FFFFFF",
   black: "#000000",
   
-  // Status colors
-  statusPending: "#D97706",   // Darker amber for contrast
-  statusInProgress: "#2563EB", // Darker blue for contrast
-  statusCompleted: "#059669",  // Darker green for contrast
-  statusServed: "#7C3AED",     // Darker purple for contrast
-  statusCancelled: "#DC2626",  // Darker red for contrast
+  // Status colors (optimized for light theme readability)
+  statusPending: "#D97706",
+  statusInProgress: "#2563EB",
+  statusCooked: "#059669",
+  statusServed: "#7C3AED",
+  statusCancelled: "#DC2626",
   
   // Order item status colors
   itemPending: "#D97706",
